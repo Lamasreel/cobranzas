@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\WhatsappSender;
+use TCPDF;
 use App\Support\WhatsappAutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,38 @@ class MorososController extends Controller
         ]);
     }
 
+    public function generarPDF()
+    {
+
+        $sql = "
+            SELECT c.*,
+                l.nombre_corto AS localidad,
+                e.id as id_estado,
+                e.estado
+            FROM cliente c
+            LEFT JOIN localidad l ON c.localidad = l.id
+            LEFT JOIN estado e ON c.estado = e.id
+            ORDER BY c.dias DESC
+        ";
+    
+        $morosos = DB::select($sql);
+    
+        $html = view('morosos._carta_documento', compact('morosos'))->render();
+    
+        $pdf = new \TCPDF('P', 'mm', 'A4');
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(15, 1, 15);
+        $pdf->AddPage();
+        // $img = base_path('assets/images/firma_abogado.png');
+        // $pdf->Image($img, 150, 110, 40); 
+        $pdf->SetFont('dejavusans', '', 10, true); //dejavusans helvetica
+        $pdf->setFontSubsetting(true);
+        $pdf->writeHTML($html, false, false, false, false, '');
+    
+        return response($pdf->Output('morosos.pdf', 'S'))
+            ->header('Content-Type', 'application/pdf');
+    }
     public function actualizarPromesa(Request $request)
     {
         DB::table('cliente')

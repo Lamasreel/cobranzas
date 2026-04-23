@@ -99,12 +99,15 @@
                            class="px-4 py-2 rounded-lg border text-sm font-semibold text-slate-700 hover:bg-slate-100">
                             Limpiar
                         </a>
+                        <a href="/morosos/pdf" target="_blank"
+                           class="px-4 py-2 rounded-lg border text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                            Cartas
+                        </a>
                     </div>
 
                 </form>
             </div>
         </div>
-
         <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
 
             <div class="p-4 border-b bg-slate-50 text-sm text-slate-600">
@@ -114,8 +117,8 @@
                 </span> registros
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full w-full border-separate border-spacing-0">
+            <div class="overflow-x-auto" style="overflow-y:  auto; max-height: 500px;">
+                <table class="min-w-full w-full border-separate border-spacing-0 overflow-x-auto">
 
                     <thead class="bg-slate-800 text-white text-sm sticky top-0 z-20">
                         <tr>

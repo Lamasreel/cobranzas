@@ -52,4 +52,6 @@ Route::get('/promesa_cliente', [PromesaClienteController::class, 'index'])
 Route::post('/promesa_cliente', [PromesaClienteController::class, 'store'])
     ->name('promesa_cliente.store');
 
+    Route::get('/morosos/pdf', [MorososController::class, 'generarPDF']);
+
 require __DIR__.'/auth.php';
