@@ -79,7 +79,7 @@
     <div style="font-weight: bold;">
         Domicilio:
         <span class="negrita subrayado">
-        {{ strtoupper($m->calle) }}, {{ strtoupper($m->observaciones) }}
+        {{ strtoupper($m->calle) }} / {{ strtoupper($m->observaciones) }}
         </span>
     </div>
 
