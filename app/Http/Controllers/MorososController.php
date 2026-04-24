@@ -59,15 +59,18 @@ class MorososController extends Controller
     {
 
         $sql = "
-            SELECT c.*,
-                l.nombre_corto AS localidad,
-                e.id as id_estado,
-                e.estado
-            FROM cliente c
-            LEFT JOIN localidad l ON c.localidad = l.id
-            LEFT JOIN estado e ON c.estado = e.id
-            ORDER BY c.dias DESC
-        ";
+        SELECT 
+            c.*,
+            t.nombre AS nombre_titular,
+            l.nombre_corto AS localidad,
+            e.id as id_estado,
+            e.estado
+        FROM cliente c
+        LEFT JOIN cliente t ON c.documento_titular = t.documento
+        LEFT JOIN localidad l ON c.localidad = l.id
+        LEFT JOIN estado e ON c.estado = e.id
+        ORDER BY c.titular_garantia ASC, c.dias DESC
+    ";
     
         $morosos = DB::select($sql);
     
@@ -161,7 +164,7 @@ class MorososController extends Controller
 
         $sql .= " ORDER BY c.dias DESC";
 
-        $morosos = DB::select($sql, $bindings);
+        $morosos = collect(DB::select($sql, $bindings));
 
         $totales = [
             'pagados' => 0,
@@ -198,12 +201,30 @@ class MorososController extends Controller
             'pagado_futuro' => $totales['pagados'] + $totales['promesa'],
             'pendiente_futuro' => $totales['pendiente'],
         ];
+        
+        $resumen = $morosos->groupBy('localidad')->map(function ($items) {
 
+            $total = $items->count();
+            $pagaron = $items->where('id_estado', 4)->count();
+    
+            return [
+                'total' => $total,
+                'tit' => $items->where('titular_garantia', 1)->count(),
+                'gar' => $items->where('titular_garantia', 2)->count(),
+                'pagaron' => $pagaron,
+                'porcentaje' => $total > 0 ? round(($pagaron / $total) * 100) : 0,
+                'wsp' => $items->where('tiene_wsp', 1)->count(),
+                'no_wsp' => $items->where('tiene_wsp', '!=', 1)->count(),
+                'no_tel' => $items->filter(fn($i) => empty($i->telefono))->count(),
+                'carta' => $items->where('carta', 1)->count(),
+            ];
+        });
 
         return view('morosos.index', [
             'morosos' => $morosos,
             'estados' => $estados,
             'totales' => $totales, 
+            'resumen' => $resumen, 
             'conteo' => $conteo, 
             'prediccion' => $prediccion, 
             'periodos' => $periodos,

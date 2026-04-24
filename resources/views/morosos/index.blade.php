@@ -1,5 +1,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 
 <x-app-layout> 
@@ -108,15 +109,65 @@
                 </form>
             </div>
         </div>
-        <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
 
-            <div class="p-4 border-b bg-slate-50 text-sm text-slate-600">
-                Mostrando 
-                <span class="font-semibold text-slate-800">
-                    {{ count($morosos) }}
-                </span> registros
+            <div class="p-4 border-b bg-slate-50 flex items-center justify-between">
+                <div class="text-sm text-slate-600">
+                    Mostrando 
+                    <span class="font-semibold text-slate-800">
+                        {{ count($morosos) }}
+                    </span> registros
+                </div>
+                <button
+                    id="btn-resumen"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-yellow-300 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 shadow-sm transition"
+                >
+                    <i class="fa-solid fa-table"></i>
+                    <span class="text-sm font-semibold">Ver resumen</span>
+                </button>
+
+                <button
+                    id="btn-fullscreen-table"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 shadow-sm transition"
+                >
+                    <i class="fa-solid fa-expand text-sm"></i>
+                    <span class="text-sm font-semibold">Pantalla completa</span>
+                </button>
+            </div>
+            <div id="resumen-container" class="hidden bg-white rounded-xl shadow border border-slate-200 p-4">
+
+    <h3 class="text-lg font-bold mb-3 text-slate-800">Resumen 30 - 60 días</h3>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm border">
+                    <thead class="bg-yellow-400 text-black">
+                        <tr>
+                            <th class="border px-3 py-2">CIUDAD</th>
+                            <th class="border px-3 py-2">TOTALES</th>
+                            <th class="border px-3 py-2">TIT</th>
+                            <th class="border px-3 py-2">GAR</th>
+                            <th class="border px-3 py-2">PAGARON</th>
+                            <th class="border px-3 py-2">% Pago</th>
+                            <th class="border px-3 py-2">TIENEN WSP</th>
+                            <th class="border px-3 py-2">NO WSP</th>
+                            <th class="border px-3 py-2">NO TEL</th>
+                            <th class="border px-3 py-2">CARTA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resumen-body">
+                        <div id="resumen-data" data-json='@json($resumen)'></div>
+                    </tbody>
+                </table>
             </div>
 
+            <!-- Totales -->
+            <div class="mt-4 flex gap-6 text-sm">
+                <div><b>Titulares:</b> <span id="total-titulares"></span></div>
+                <div><b>Pagaron:</b> <span id="total-pagaron" class="text-green-600 font-bold"></span></div>
+                <div><b>Deben:</b> <span id="total-deben" class="text-red-600 font-bold"></span></div>
+            </div>
+
+        </div>
+            <div id="tabla-container" class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto" style="overflow-y:  auto; max-height: 500px;">
                 <table class="min-w-full w-full border-separate border-spacing-0 overflow-x-auto">
 
@@ -156,12 +207,12 @@
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">MAR</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Imp.</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Datos Adicionales</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">WSP</th>
+                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Se envió WSP</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Tiene WSP</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">SMS</th>
+                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Se envió SMS</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">LLAMADA</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Tiene Tel</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Carta</th>
+                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Se envió Carta</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Fecha Env. Carta</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Fecha Promesa Pago</th>
                             <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Observaciones Promesa</th>
@@ -173,8 +224,8 @@
 
                         @php
                             $rowClass = match ((int)$m->id_estado) {
-                                4 => 'bg-green-100', // Pagado
-                                3 => 'bg-orange-100',   // Compromiso
+                                4 => 'bg-green-300', // Pagado
+                                3 => 'bg-sky-300',   // Compromiso
                                 default => 'bg-white',
                             };
 
@@ -300,9 +351,15 @@
                             <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
                                 {{ $m->wsp }}
                             </td>
+
                             <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                {{ $m->tiene_wsp }}
+                                <?php if($m->tiene_wsp === 1){ ?>
+                                    <i class="fa-solid fa-check text-green-500 text-lg"></i>
+                                <?php }else if($m->tiene_wsp === '' or $m->tiene_wsp === null){ ?>
+                                    <i class="fa-solid fa-cancel text-red-500 text-lg"></i>
+                                <?php  }; ?>
                             </td>
+
                             <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
                                 {{ $m->sms }}
                             </td>
@@ -310,7 +367,11 @@
                                 {{ $m->llamada }}
                             </td>
                             <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                {{ $m->tiene_tel }}
+                                <?php if($m->tiene_wsp === 1){ ?>
+                                    <i class="fa-solid fa-check text-green-500 text-lg"></i>
+                                <?php }else if($m->tiene_wsp === '' or $m->tiene_wsp === null){ ?>
+                                    <i class="fa-solid fa-cancel text-red-500 text-lg"></i>
+                                <?php  }; ?>
                             </td>
                             <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
                                 {{ $m->carta }}
@@ -339,6 +400,7 @@
 
                         </tbody>
                 </table>
+                </div>
             </div>
                     <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
                         <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
@@ -928,4 +990,128 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('btn-fullscreen-table');
+            const container = document.getElementById('tabla-container');
+
+            if (!btn || !container) return;
+
+            btn.addEventListener('click', async () => {
+                try {
+                    if (!document.fullscreenElement) {
+                        await container.requestFullscreen();
+                    } else {
+                        await document.exitFullscreen();
+                    }
+                } catch (e) {
+                    console.error('Error fullscreen:', e);
+                }
+            });
+        });
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.querySelector('#btn-fullscreen-table i');
+            const text = document.querySelector('#btn-fullscreen-table span');
+
+            if (!icon || !text) return;
+
+            if (document.fullscreenElement) {
+                icon.classList.replace('fa-expand', 'fa-compress');
+                text.textContent = 'Salir';
+            } else {
+                icon.classList.replace('fa-compress', 'fa-expand');
+                text.textContent = 'Pantalla completa';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+        const btn = document.getElementById('btn-resumen');
+        const cont = document.getElementById('resumen-container');
+        const dataEl = document.getElementById('resumen-data');
+
+        let visible = false;
+
+        btn.addEventListener('click', () => {
+            visible = !visible;
+
+            cont.classList.toggle('hidden');
+
+            btn.querySelector('span').textContent = visible ? 'Ocultar resumen' : 'Ver resumen';
+
+            if (visible) renderResumen();
+        });
+
+        function renderResumen() {
+            const data = JSON.parse(dataEl.dataset.json || '{}');
+            const tbody = document.getElementById('resumen-body');
+
+            tbody.innerHTML = '';
+
+            let totalTitulares = 0;
+            let totalPagaron = 0;
+
+            Object.entries(data).forEach(([loc, r]) => {
+
+                const porcentaje = r.total > 0 ? ((r.pagaron / r.total) * 100).toFixed(0) : 0;
+
+                totalTitulares += r.tit;
+                totalPagaron += r.pagaron;
+
+                const row = `
+                    <tr>
+                        <td class="border px-3 py-2">${loc}</td>
+                        <td class="border px-3 py-2">${r.total}</td>
+                        <td class="border px-3 py-2">${r.tit}</td>
+                        <td class="border px-3 py-2">${r.gar}</td>
+                        <td class="border px-3 py-2">${r.pagaron}</td>
+                        <td class="border px-3 py-2">${porcentaje}%</td>
+                        <td class="border px-3 py-2">${r.wsp}</td>
+                        <td class="border px-3 py-2">${r.no_wsp}</td>
+                        <td class="border px-3 py-2">${r.no_tel}</td>
+                        <td class="border px-3 py-2">${r.carta}</td>
+                    </tr>
+                `;
+
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            document.getElementById('total-titulares').textContent = totalTitulares;
+            document.getElementById('total-pagaron').textContent = totalPagaron;
+            document.getElementById('total-deben').textContent = totalTitulares - totalPagaron;
+        }
+
+        });
+
  </script>
+
+ <style>
+ #tabla-container:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    padding: 12px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+}
+
+#tabla-container:fullscreen .border-b {
+    flex-shrink: 0;
+}
+
+#tabla-container:fullscreen .overflow-x-auto {
+    flex: 1;
+    max-height: 100% !important;
+    overflow: auto !important;
+}
+
+#tabla-container:fullscreen table {
+    font-size: 14px;
+}
+
+#tabla-container:fullscreen thead {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+}
+ </style>

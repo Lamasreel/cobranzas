@@ -72,7 +72,11 @@
     <div style="font-weight: bold;">
         Señor/a:
         <span class="negrita subrayado">
-            {{ strtoupper($m->nombre) }}
+        @if($m->titular_garantia == 1)
+                {{ strtoupper($m->nombre) }}
+            @else
+                {{ strtoupper($m->nombre) }} (GARANTE DE: {{ strtoupper($m->nombre_titular ?? 'SIN TITULAR') }})
+            @endif
         </span>
     </div>
 
