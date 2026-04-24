@@ -129,6 +129,18 @@ class MorososController extends Controller
         ];
 
         $estados = DB::table('estado')->get();
+        $estadoIdPagado = $estados->first(function ($e) {
+            $t = strtolower(trim((string) ($e->estado ?? '')));
+
+            return $t === 'pagado' || str_starts_with($t, 'pagado ')
+                || str_starts_with($t, 'pagado,');
+        })?->id;
+        $estadoIdPromesa = $estados->first(function ($e) {
+            $t = strtolower(trim((string) ($e->estado ?? '')));
+
+            return str_contains($t, 'promesa')
+                && ! str_contains($t, 'sin promesa');
+        })?->id;
         $localidades = DB::table('localidad')->get();
 
         $sql = "
@@ -179,21 +191,31 @@ class MorososController extends Controller
         ];
         
         foreach ($morosos as $m) {
-            switch ($m->id_estado) {
-                case 4:
-                    $totales['pagados'] += $m->saldo_total;
-                    $conteo['pagados']++;
-                    break;
-        
-                case 3:
-                    $totales['promesa'] += $m->saldo_total;
-                    $conteo['promesa']++;
-                    break;
-        
-                case 2:
-                    $totales['pendiente'] += $m->saldo_total;
-                    $conteo['pendiente']++;
-                    break;
+            $estNombre = strtolower(trim((string) ($m->estado ?? '')));
+            $idEst = (int) ($m->id_estado ?? 0);
+
+            $esPagadoFila = ($estadoIdPagado !== null && $idEst === (int) $estadoIdPagado)
+                || $estNombre === 'pagado'
+                || str_starts_with($estNombre, 'pagado ')
+                || str_starts_with($estNombre, 'pagado,');
+            $esPromesaFila = ! $esPagadoFila && (
+                ($estadoIdPromesa !== null && $idEst === (int) $estadoIdPromesa)
+                || (str_contains($estNombre, 'promesa') && ! str_contains($estNombre, 'sin promesa'))
+            );
+
+            if ($esPagadoFila) {
+                $totales['pagados'] += $m->saldo_total;
+                $conteo['pagados']++;
+                continue;
+            }
+            if ($esPromesaFila) {
+                $totales['promesa'] += $m->saldo_total;
+                $conteo['promesa']++;
+                continue;
+            }
+            if ($idEst === ESTADO_PENDIENTE || str_contains($estNombre, 'pendiente')) {
+                $totales['pendiente'] += $m->saldo_total;
+                $conteo['pendiente']++;
             }
         }
 
@@ -202,29 +224,61 @@ class MorososController extends Controller
             'pendiente_futuro' => $totales['pendiente'],
         ];
         
-        $resumen = $morosos->groupBy('localidad')->map(function ($items) {
-
-            $total = $items->count();
-            $pagaron = $items->where('id_estado', 4)->count();
+        $rangos = [
+            '0_30' => ['label' => '0-30 días', 'min' => 0, 'max' => 30],
+            '30_60' => ['label' => '30-60 días', 'min' => 30, 'max' => 60],
+            '60_90' => ['label' => '60-90 días', 'min' => 60, 'max' => 90],
+            '90_120' => ['label' => '90-120 días', 'min' => 90, 'max' => 120],
+            '120_150' => ['label' => '120-150 días', 'min' => 120, 'max' => 150],
+            '150_180' => ['label' => '150-180 días', 'min' => 150, 'max' => 180],
+            '180_365' => ['label' => '180-365', 'min' => 365, 'max' => 365],
+            '365_plus' => ['label' => '365+ días', 'min' => 365, 'max' => 99999],
+        ];
     
-            return [
-                'total' => $total,
-                'tit' => $items->where('titular_garantia', 1)->count(),
-                'gar' => $items->where('titular_garantia', 2)->count(),
-                'pagaron' => $pagaron,
-                'porcentaje' => $total > 0 ? round(($pagaron / $total) * 100) : 0,
-                'wsp' => $items->where('tiene_wsp', 1)->count(),
-                'no_wsp' => $items->where('tiene_wsp', '!=', 1)->count(),
-                'no_tel' => $items->filter(fn($i) => empty($i->telefono))->count(),
-                'carta' => $items->where('carta', 1)->count(),
-            ];
-        });
+        $resumenPorRango = [];
+    
+        foreach ($rangos as $key => $r) {
+    
+            $filtrados = $morosos->filter(function ($m) use ($r) {
+                return $m->dias >= $r['min'] && $m->dias <= $r['max'];
+            });
+    
+            $resumenPorRango[$key] = $filtrados
+                ->groupBy('localidad')
+                ->map(function ($items) use ($estadoIdPagado) {
+
+                    $total = $items->count();
+                    $pagaron = $items->filter(function ($row) use ($estadoIdPagado) {
+                        $n = strtolower(trim((string) ($row->estado ?? '')));
+                        $id = (int) ($row->id_estado ?? 0);
+
+                        return ($estadoIdPagado !== null && $id === (int) $estadoIdPagado)
+                            || $n === 'pagado'
+                            || str_starts_with($n, 'pagado ')
+                            || str_starts_with($n, 'pagado,');
+                    })->count();
+    
+                    return [
+                        'total' => $total,
+                        'tit' => $items->where('titular_garantia', 1)->count(),
+                        'gar' => $items->where('titular_garantia', 2)->count(),
+                        'pagaron' => $pagaron,
+                        'wsp' => $items->where('tiene_wsp', 1)->count(),
+                        'no_wsp' => $items->where('tiene_wsp', '!=', 1)->count(),
+                        'no_tel' => $items->filter(fn($i) => empty($i->telefono))->count(),
+                        'carta' => $items->where('carta', 1)->count(),
+                    ];
+                });
+        }
 
         return view('morosos.index', [
             'morosos' => $morosos,
             'estados' => $estados,
+            'estadoIdPagado' => $estadoIdPagado,
+            'estadoIdPromesa' => $estadoIdPromesa,
             'totales' => $totales, 
-            'resumen' => $resumen, 
+            'resumen' => $resumenPorRango, 
+            'rangos' => $rangos, 
             'conteo' => $conteo, 
             'prediccion' => $prediccion, 
             'periodos' => $periodos,

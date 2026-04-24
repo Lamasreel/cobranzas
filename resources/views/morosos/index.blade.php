@@ -63,21 +63,6 @@
 
                     <div>
                         <label class="block text-sm font-semibold text-slate-700">
-                            Periodo
-                        </label>
-                        <select name="periodo"
-                            class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="">Todos</option>
-                            @foreach ($periodos as $key => $p)
-                                <option value="{{ $key }}" @selected(($filters['periodo'] ?? '') === $key)>
-                                    {{ $p['label'] }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700">
                             Localidad
                         </label>
                         <select name="localidad"
@@ -117,13 +102,28 @@
                         {{ count($morosos) }}
                     </span> registros
                 </div>
-                <button
-                    id="btn-resumen"
-                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-yellow-300 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 shadow-sm transition"
-                >
-                    <i class="fa-solid fa-table"></i>
-                    <span class="text-sm font-semibold">Ver resumen</span>
+                <div class="flex items-center gap-3">
+
+                <button id="prev-rango"
+                    class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-100 shadow">
+                    <i class="fa-solid fa-chevron-left"></i>
                 </button>
+
+                <span id="rango-actual"
+                    class="text-sm font-bold text-slate-800 px-3">
+                    0-30 días
+                </span>
+
+                <button id="next-rango"
+                    class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-100 shadow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button id="toggle-resumen"
+                    class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-100 shadow text-sm font-semibold">
+                    Ver resumen
+                </button>
+
+                </div>
 
                 <button
                     id="btn-fullscreen-table"
@@ -135,11 +135,16 @@
             </div>
             <div id="resumen-container" class="hidden bg-white rounded-xl shadow border border-slate-200 p-4">
 
-    <h3 class="text-lg font-bold mb-3 text-slate-800">Resumen 30 - 60 días</h3>
+            <div class="flex items-center justify-between mb-3">
 
+                <h3 id="rango-titulo" class="text-lg font-bold text-slate-800">
+                    Resumen
+                </h3>
+
+            </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm border">
-                    <thead class="bg-yellow-400 text-black">
+                    <thead class="bg-gray-300 text-black">
                         <tr>
                             <th class="border px-3 py-2">CIUDAD</th>
                             <th class="border px-3 py-2">TOTALES</th>
@@ -167,75 +172,74 @@
             </div>
 
         </div>
-            <div id="tabla-container" class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto" style="overflow-y:  auto; max-height: 500px;">
-                <table class="min-w-full w-full border-separate border-spacing-0 overflow-x-auto">
+        
+        <div id="tabla-container" class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+            <div class="overflow-auto max-h-[500px]">
 
-                    <thead class="bg-slate-800 text-white text-sm sticky top-0 z-20">
+                <table class="morosos-sticky-table min-w-full w-full border-collapse text-xs">
+
+                    <thead class="bg-slate-100 text-slate-700 text-[11px] uppercase tracking-wide sticky top-0 z-40">
                         <tr>
-                        <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">Orden</th>
-                        <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">Tit. Gar.</th>
-                            <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">
-                                DNI Titular
-                            </th>
-                            <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">
-                                DNI
-                            </th>
-
-                            <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">
-                                Nombre
-                            </th>
-
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">
-                                Calle
-                            </th>
-
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">
-                                Observaciones
-                            </th>
-                            <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">Localidad</th>
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">Teléfono</th>
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">Empleador</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Días</th>
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">Fecha Ult. Pago</th>
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">Saldo Vencido</th>
-                            <th class="py-3 px-4 border border-slate-700 bg-slate-800 whitespace-nowrap">Int. Pun.</th>
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">Saldo Total</th>
-                            <th class="py-3 px-4 border border-slate-700 text-center bg-slate-800 whitespace-nowrap">Estado</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">FEB</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Imp.</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">MAR</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Imp.</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Datos Adicionales</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Se envió WSP</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Tiene WSP</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Se envió SMS</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">LLAMADA</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Tiene Tel</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Se envió Carta</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Fecha Env. Carta</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Fecha Promesa Pago</th>
-                            <th class="py-3 px-4 border border-slate-700 text-right bg-slate-800 whitespace-nowrap">Observaciones Promesa</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Orden</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Tit. Gar.</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">DNI Titular</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">DNI</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Nombre</th>
+                            <th class="py-2 px-2 border">Calle</th>
+                            <th class="py-2 px-2 border">Observaciones</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Localidad</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Teléfono</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Empleador</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">Días</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Fecha Ult. Pago</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">Saldo Vencido</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">Int. Pun.</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">Saldo Total</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Estado</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">FEB</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">Imp.</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">MAR</th>
+                            <th class="py-2 px-2 border text-right whitespace-nowrap">Imp.</th>
+                            <th class="py-2 px-2 border">Datos Adicionales</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Se envió WSP</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Tiene WSP</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Se envió SMS</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">LLAMADA</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Tiene Tel</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Se envió Carta</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Fecha Env. Carta</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">Fecha Promesa Pago</th>
+                            <th class="py-2 px-2 border">Observaciones Promesa</th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm text-slate-800">
+
+                    <tbody class="text-slate-700">
+
                         @php $c = 1; @endphp
+
                         @forelse ($morosos as $m)
 
                         @php
-                            $rowClass = match ((int)$m->id_estado) {
-                                4 => 'bg-green-300', // Pagado
-                                3 => 'bg-sky-300',   // Compromiso
-                                default => 'bg-white',
-                            };
+                            $estNorm = strtolower(trim((string) ($m->estado ?? '')));
+                            $idEst = (int) ($m->id_estado ?? 0);
+                            $esPagado = ($estadoIdPagado !== null && $idEst === (int) $estadoIdPagado)
+                                || $estNorm === 'pagado'
+                                || str_starts_with($estNorm, 'pagado ')
+                                || str_starts_with($estNorm, 'pagado,');
+                            $esPromesa = ! $esPagado && (
+                                ($estadoIdPromesa !== null && $idEst === (int) $estadoIdPromesa)
+                                || (str_contains($estNorm, 'promesa') && ! str_contains($estNorm, 'sin promesa'))
+                            );
 
-                            $badge = match ($m->estado) {
-                                'Pendiente' => 'bg-yellow-100 text-yellow-800',
-                                'En gestión' => 'bg-green-100 text-green-800',
-                                'Compromiso de pago' => 'bg-blue-100 text-blue-800',
-                                'Incobrable' => 'bg-red-100 text-red-800',
-                                default => 'bg-gray-100 text-gray-700',
-                            };
+                            $badge = $esPagado
+                                ? 'bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200/80'
+                                : ($esPromesa
+                                    ? 'bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200/80'
+                                    : 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200/70');
+
+                            $rowEstadoClass = $esPagado
+                                ? 'moroso-row--pagado'
+                                : ($esPromesa ? 'moroso-row--promesa' : 'moroso-row--default');
 
                             $phoneSources = [
                                 (string) ($m->telefono ?? ''),
@@ -256,187 +260,224 @@
                             $phones = array_values(array_unique($phones));
                         @endphp
 
-                        <tr 
-                            class="{{ $rowClass }} hover:bg-emerald-200/70 transition cursor-pointer align-top"
+                        <tr
+                            class="border-b transition cursor-pointer align-middle {{ $rowEstadoClass }}"
                             data-moroso-id="{{ $m->id }}"
                             data-moroso-nombre="{{ e($m->nombre) }}"
                             data-moroso-estado="{{ e($m->estado) }}"
                             data-moroso-fecha="{{ e($m->fecha_promesa_pago) }}"
                             data-moroso-obs="{{ e($m->observaciones_promesa) }}"
+                            data-dias="{{ e($m->dias) }}"
                         >
 
-                            <td class="py-3 px-4 border border-slate-200 font-medium text-slate-700 whitespace-nowrap">
-                                {{ $c }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 font-medium whitespace-nowrap">
-                                {{ $m->titular_garantia }}
-                            </td>
+                            <td class="py-1.5 px-2 border">{{ $c }}</td>
+                            <td class="py-1.5 px-2 border">{{ $m->titular_garantia }}</td>
+                            <td class="py-1.5 px-2 border">{{ $m->documento_titular }}</td>
+                            <td class="py-1.5 px-2 border">{{ $m->documento }}</td>
 
-                            <td class="py-3 px-4 border border-slate-200 text-slate-600 whitespace-nowrap">
-                                {{ $m->documento_titular }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-slate-600 whitespace-nowrap">
-                                {{ $m->documento }}
-                            </td>
-
-                            <td class="py-3 px-4 border border-slate-200 whitespace-nowrap">
+                            <td class="py-1.5 px-2 border font-medium truncate">
                                 {{ $m->nombre }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 max-w-[22rem] whitespace-normal break-words">
+
+                            <td class="py-1.5 px-2 border max-w-[180px] truncate">
                                 {{ $m->calle }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 max-w-[28rem] whitespace-normal break-words">
+
+                            <td class="py-1.5 px-2 border max-w-[200px] truncate">
                                 {{ $m->observaciones }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 whitespace-nowrap">
+
+                            <td class="py-1.5 px-2 border whitespace-nowrap">
                                 {{ $m->localidad }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200">
+
+                            <td class="py-1.5 px-2 border text-center">
                                 @if (count($phones) <= 1)
-                                    <span class="whitespace-nowrap">{{ $phones[0] ?? '' }}</span>
+                                    {{ $phones[0] ?? '-' }}
                                 @else
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-semibold whitespace-nowrap shadow-sm"
+                                        onclick="event.stopPropagation()"
+                                        class="text-xs px-2 py-1 rounded bg-slate-100 hover:bg-slate-200"
                                         data-telefonos-cliente="{{ e($m->nombre) }}"
                                         data-telefonos='@json($phones)'
-                                        onclick="event.stopPropagation();"
-                                        title="Ver todos los teléfonos"
                                     >
-                                        <span>{{ $phones[0] }}</span>
-                                        <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                                            +{{ count($phones) - 1 }}
-                                        </span>
+                                        Ver {{ count($phones) }} teléfonos
                                     </button>
                                 @endif
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 max-w-[18rem] whitespace-normal break-words">
+
+                            <td class="py-1.5 px-2 border max-w-[150px] truncate">
                                 {{ $m->empleador }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
+
+                            <td class="py-1.5 px-2 border text-right font-semibold">
                                 {{ $m->dias }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 whitespace-nowrap">
+
+                            <td class="py-1.5 px-2 border whitespace-nowrap">
                                 {{ $m->fecha_ultimo_pago }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->saldo_vencido }}
+
+                            <td class="py-1.5 px-2 border text-right">
+                                ${{ number_format($m->saldo_vencido, 0, ',', '.') }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->interes_punitorio }}
+
+                            <td class="py-1.5 px-2 border text-right">
+                                ${{ number_format($m->interes_punitorio, 0, ',', '.') }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->saldo_total }}
+
+                            <td class="py-1.5 px-2 border text-right font-semibold">
+                                ${{ number_format($m->saldo_total, 0, ',', '.') }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $badge }}">
+
+                            <td class="py-1.5 px-2 border text-center">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium {{ $badge }}">
                                     {{ $m->estado }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->feb }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->feb_importe }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->mar }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-right whitespace-nowrap">
-                                {{ $m->mar_importe }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 max-w-[26rem] whitespace-normal break-words">
+
+                            <td class="py-1.5 px-2 border text-right">{{ $m->feb }}</td>
+                            <td class="py-1.5 px-2 border text-right">{{ $m->feb_importe }}</td>
+                            <td class="py-1.5 px-2 border text-right">{{ $m->mar }}</td>
+                            <td class="py-1.5 px-2 border text-right">{{ $m->mar_importe }}</td>
+
+                            <td class="py-1.5 px-2 border max-w-[200px] truncate">
                                 {{ $m->datos_adicionales }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                {{ $m->wsp }}
+
+                            <td class="py-1.5 px-2 border text-center">{{ $m->wsp }}</td>
+
+                            <td class="py-1.5 px-2 border text-center">
+                                @if($m->tiene_wsp == 1)
+                                    <i class="fa-solid fa-check text-green-500"></i>
+                                @else
+                                    <i class="fa-solid fa-xmark text-red-500"></i>
+                                @endif
                             </td>
 
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                <?php if($m->tiene_wsp === 1){ ?>
-                                    <i class="fa-solid fa-check text-green-500 text-lg"></i>
-                                <?php }else if($m->tiene_wsp === '' or $m->tiene_wsp === null){ ?>
-                                    <i class="fa-solid fa-cancel text-red-500 text-lg"></i>
-                                <?php  }; ?>
+                            <td class="py-1.5 px-2 border text-center">{{ $m->sms }}</td>
+                            <td class="py-1.5 px-2 border text-center">{{ $m->llamada }}</td>
+
+                            <td class="py-1.5 px-2 border text-center">
+                                @if($m->tiene_wsp == 1)
+                                    <i class="fa-solid fa-check text-green-500"></i>
+                                @else
+                                    <i class="fa-solid fa-xmark text-red-500"></i>
+                                @endif
                             </td>
 
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                {{ $m->sms }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                {{ $m->llamada }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                <?php if($m->tiene_wsp === 1){ ?>
-                                    <i class="fa-solid fa-check text-green-500 text-lg"></i>
-                                <?php }else if($m->tiene_wsp === '' or $m->tiene_wsp === null){ ?>
-                                    <i class="fa-solid fa-cancel text-red-500 text-lg"></i>
-                                <?php  }; ?>
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 text-center whitespace-nowrap">
-                                {{ $m->carta }}
-                            </td>
-                            <td class="py-3 px-4 border border-slate-200 whitespace-nowrap">
+                            <td class="py-1.5 px-2 border text-center">{{ $m->carta }}</td>
+
+                            <td class="py-1.5 px-2 border whitespace-nowrap">
                                 {{ $m->fecha_envio_carta }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 whitespace-nowrap">
+
+                            <td class="py-1.5 px-2 border whitespace-nowrap">
                                 {{ $m->fecha_promesa_pago }}
                             </td>
-                            <td class="py-3 px-4 border border-slate-200 max-w-[28rem] whitespace-normal break-words">
+
+                            <td class="py-1.5 px-2 border max-w-[220px] truncate">
                                 {{ $m->observaciones_promesa }}
                             </td>
 
-                            @php $c++; @endphp
-
                         </tr>
+
+                        @php $c++; @endphp
 
                         @empty
                         <tr>
-                            <td colspan="6" class="py-10 text-center text-slate-500 border">
+                            <td colspan="30" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
                                 No hay morosos para los filtros seleccionados.
                             </td>
                         </tr>
                         @endforelse
 
-                        </tbody>
+                    </tbody>
+
                 </table>
-                </div>
+
             </div>
-                    <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-                        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+            </div>
+                    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 bg-slate-900/55 backdrop-blur-[2px]">
+                        <div
+                            class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200/90 ring-1 ring-black/5"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="modalCliente"
+                        >
+                            <div class="flex items-start justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-[11px] font-bold uppercase tracking-widest text-emerald-700/90">
+                                        Gestión de mora
+                                    </p>
+                                    <h2 id="modalCliente" class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight mt-1 truncate">
+                                    </h2>
+                                    <p class="text-xs text-slate-500 mt-1">
+                                        Registrá la fecha de compromiso y las notas del acuerdo.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick="closeModal()"
+                                    class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+                                    aria-label="Cerrar"
+                                >
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </div>
 
-                            <button onclick="closeModal()" class="absolute top-2 right-2 text-slate-500 text-xl">✕</button>
-
-                            <h2 class="text-xl font-bold mb-4" id="modalCliente"></h2>
-
-                            <form id="promesaForm" method="POST" action="{{ route('morosos.promesa') }}">
+                            <form id="promesaForm" method="POST" action="{{ route('morosos.promesa') }}" class="px-5 sm:px-6 py-5 space-y-5">
                                 @csrf
 
                                 <input type="hidden" name="id" id="modalId">
 
-                                <div class="mb-3">
-                                    <label class="text-sm font-semibold">Fecha compromiso</label>
-                                    <input type="date" name="fecha_promesa_pago" id="modalFechaInput"
-                                        class="w-full border rounded-lg p-2 mt-1">
+                                <div class="space-y-2">
+                                    <label for="modalFechaInput" class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                                            <i class="fa-solid fa-calendar-days text-sm"></i>
+                                        </span>
+                                        Fecha de compromiso de pago
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="fecha_promesa_pago"
+                                        id="modalFechaInput"
+                                        class="w-full rounded-xl border-slate-300 shadow-sm text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-3 py-2.5 text-sm"
+                                    >
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="text-sm font-semibold">Observaciones</label>
-                                    <textarea name="observaciones_promesa" id="modalObsInput"
-                                            class="w-full border rounded-lg p-2 mt-1"></textarea>
+                                <div class="space-y-2">
+                                    <label for="modalObsInput" class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                                            <i class="fa-solid fa-note-sticky text-sm"></i>
+                                        </span>
+                                        Observaciones del acuerdo
+                                    </label>
+                                    <textarea
+                                        name="observaciones_promesa"
+                                        id="modalObsInput"
+                                        rows="4"
+                                        placeholder="Ej.: cuotas acordadas, monto parcial, forma de pago…"
+                                        class="w-full rounded-xl border-slate-300 shadow-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-3 py-2.5 text-sm resize-y min-h-[100px]"
+                                    ></textarea>
                                 </div>
 
-                                <div class="flex justify-between mt-4">
-
-                                    <button type="submit"
-                                            class="bg-sky-600 text-white px-4 py-2 rounded-lg">
-                                        Guardar promesa
+                                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        onclick="marcarPagado()"
+                                        class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 transition"
+                                    >
+                                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                        Marcar como pagado
                                     </button>
-
-                                    <button type="button"
-                                            onclick="marcarPagado()"
-                                            class="bg-green-600 text-white px-4 py-2 rounded-lg">
-                                        Marcar pagado
+                                    <button
+                                        type="submit"
+                                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/25 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition"
+                                    >
+                                        <i class="fa-solid fa-floppy-disk"></i>
+                                        Guardar promesa
                                     </button>
                                 </div>
                             </form>
@@ -766,18 +807,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.querySelectorAll('button[data-telefonos]').forEach((btn) => {
-        btn.addEventListener('click', () => {
+     document.querySelectorAll('button[data-telefonos]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 🔥 ESTO ES CLAVE
+
             let phones = [];
             try {
                 phones = JSON.parse(btn.dataset.telefonos || '[]');
             } catch (e) {
                 phones = [];
             }
-            openTelefonosModal(btn.dataset.telefonosCliente || '', phones);
+
+            openTelefonosModal(
+                btn.dataset.telefonosCliente || '',
+                phones
+            );
         });
     });
-
     const promesaForm = document.getElementById('promesaForm');
     if (!promesaForm) return;
 
@@ -1023,42 +1069,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 text.textContent = 'Pantalla completa';
             }
         });
-
         document.addEventListener('DOMContentLoaded', () => {
 
-        const btn = document.getElementById('btn-resumen');
-        const cont = document.getElementById('resumen-container');
         const dataEl = document.getElementById('resumen-data');
+        const data = JSON.parse(dataEl.dataset.json || '{}');
 
-        let visible = false;
+        const rangos = [
+            { key: '0_30', label: '0-30 días' },
+            { key: '30_60', label: '30-60 días' },
+            { key: '60_90', label: '60-90 días' },
+            { key: '90_120', label: '90-120 días' },
+            { key: '120_150', label: '120-150 días' },
+            { key: '150_180', label: '150-180 días' },
+            { key: '180_365', label: '180-365' },
+            { key: '365_plus', label: '365+ días' }
+        ];
 
-        btn.addEventListener('click', () => {
-            visible = !visible;
+        let index = 0;
 
-            cont.classList.toggle('hidden');
+        const tbody = document.getElementById('resumen-body');
+        const label = document.getElementById('rango-actual');
 
-            btn.querySelector('span').textContent = visible ? 'Ocultar resumen' : 'Ver resumen';
+        function render() {
 
-            if (visible) renderResumen();
-        });
+            const rango = rangos[index];
+            const resumen = data[rango.key] || {};
 
-        function renderResumen() {
-            const data = JSON.parse(dataEl.dataset.json || '{}');
-            const tbody = document.getElementById('resumen-body');
+            label.textContent = rango.label;
+
+                    filtrarTabla(rango);
+
 
             tbody.innerHTML = '';
 
             let totalTitulares = 0;
             let totalPagaron = 0;
 
-            Object.entries(data).forEach(([loc, r]) => {
+            Object.entries(resumen).forEach(([loc, r]) => {
 
-                const porcentaje = r.total > 0 ? ((r.pagaron / r.total) * 100).toFixed(0) : 0;
+                const porcentaje = r.total > 0
+                    ? ((r.pagaron / r.total) * 100).toFixed(0)
+                    : 0;
 
                 totalTitulares += r.tit;
                 totalPagaron += r.pagaron;
 
-                const row = `
+                tbody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td class="border px-3 py-2">${loc}</td>
                         <td class="border px-3 py-2">${r.total}</td>
@@ -1071,9 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="border px-3 py-2">${r.no_tel}</td>
                         <td class="border px-3 py-2">${r.carta}</td>
                     </tr>
-                `;
-
-                tbody.insertAdjacentHTML('beforeend', row);
+                `);
             });
 
             document.getElementById('total-titulares').textContent = totalTitulares;
@@ -1081,11 +1135,114 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('total-deben').textContent = totalTitulares - totalPagaron;
         }
 
+        document.getElementById('prev-rango').addEventListener('click', () => {
+            if (index > 0) {
+                index--;
+                render();
+            }
         });
 
- </script>
+        document.getElementById('next-rango').addEventListener('click', () => {
+            if (index < rangos.length - 1) {
+                index++;
+                render();
+            }
+        });
+
+        render();
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+
+        const btn = document.getElementById('toggle-resumen');
+        const resumen = document.getElementById('resumen-container');
+        const tabla = document.getElementById('tabla-container');
+
+        let mostrandoResumen = false;
+
+        btn.addEventListener('click', () => {
+
+            mostrandoResumen = !mostrandoResumen;
+
+            if (mostrandoResumen) {
+                resumen.classList.remove('hidden');
+                tabla.classList.add('hidden');
+                btn.textContent = 'Ver tabla';
+            } else {
+                resumen.classList.add('hidden');
+                tabla.classList.remove('hidden');
+                btn.textContent = 'Ver resumen';
+            }
+        });
+
+        });
+
+        function filtrarTabla(rango) {
+
+const filas = document.querySelectorAll('#tabla-container tbody tr');
+
+filas.forEach(fila => {
+
+    const dias = parseInt(fila.dataset.dias || '0');
+
+    let mostrar = false;
+
+    switch (rango.key) {
+
+        case '0_30':
+            mostrar = dias >= 0 && dias <= 30;
+            break;
+
+        case '30_60':
+            mostrar = dias > 30 && dias <= 60;
+            break;
+
+        case '60_90':
+            mostrar = dias > 60 && dias <= 90;
+            break;
+
+        case '90_120':
+            mostrar = dias > 90 && dias <= 120;
+            break;
+
+        case '120_150':
+            mostrar = dias > 120 && dias <= 150;
+            break;
+
+        case '150_180':
+            mostrar = dias > 150 && dias <= 180;
+            break;
+
+        case '180_365':
+            mostrar = dias > 180 && dias <= 365;
+            break;
+
+        case '365_plus':
+            mostrar = dias >= 365;
+            break;
+    }
+
+    fila.style.display = mostrar ? '' : 'none';
+});
+}
+</script>
 
  <style>
+ .limit-2-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.limit-2-lines.expanded {
+    -webkit-line-clamp: unset;
+    overflow: visible;
+}
+
+.table-auto-layout {
+    table-layout: auto;
+}
  #tabla-container:fullscreen {
     width: 100vw;
     height: 100vh;
@@ -1114,4 +1271,112 @@ document.addEventListener('DOMContentLoaded', () => {
     top: 0;
     z-index: 30;
 }
- </style>
+
+#tabla-container .morosos-sticky-table {
+--m-cw1: 2.75rem;
+--m-cw2: 3.5rem;
+--m-cw3: 7.25rem;
+--m-cw4: 7.25rem;
+--m-cw5: 12rem;
+--m-l1: 0;
+--m-l2: var(--m-cw1);
+--m-l3: calc(var(--m-cw1) + var(--m-cw2));
+--m-l4: calc(var(--m-cw1) + var(--m-cw2) + var(--m-cw3));
+--m-l5: calc(var(--m-cw1) + var(--m-cw2) + var(--m-cw3) + var(--m-cw4));
+}
+#tabla-container .morosos-sticky-table thead th:nth-child(1),
+#tabla-container .morosos-sticky-table tbody td:nth-child(1) {
+position: sticky;
+left: var(--m-l1);
+min-width: var(--m-cw1);
+max-width: var(--m-cw1);
+width: var(--m-cw1);
+box-sizing: border-box;
+}
+#tabla-container .morosos-sticky-table thead th:nth-child(2),
+#tabla-container .morosos-sticky-table tbody td:nth-child(2) {
+position: sticky;
+left: var(--m-l2);
+min-width: var(--m-cw2);
+max-width: var(--m-cw2);
+width: var(--m-cw2);
+box-sizing: border-box;
+}
+#tabla-container .morosos-sticky-table thead th:nth-child(3),
+#tabla-container .morosos-sticky-table tbody td:nth-child(3) {
+position: sticky;
+left: var(--m-l3);
+min-width: var(--m-cw3);
+max-width: var(--m-cw3);
+width: var(--m-cw3);
+box-sizing: border-box;
+}
+#tabla-container .morosos-sticky-table thead th:nth-child(4),
+#tabla-container .morosos-sticky-table tbody td:nth-child(4) {
+position: sticky;
+left: var(--m-l4);
+min-width: var(--m-cw4);
+max-width: var(--m-cw4);
+width: var(--m-cw4);
+box-sizing: border-box;
+}
+#tabla-container .morosos-sticky-table thead th:nth-child(5),
+#tabla-container .morosos-sticky-table tbody td:nth-child(5) {
+position: sticky;
+left: var(--m-l5);
+min-width: var(--m-cw5);
+max-width: var(--m-cw5);
+width: var(--m-cw5);
+box-sizing: border-box;
+box-shadow: 4px 0 10px -4px rgba(15, 23, 42, 0.18);
+}
+#tabla-container .morosos-sticky-table thead th:nth-child(1) { z-index: 45; }
+#tabla-container .morosos-sticky-table thead th:nth-child(2) { z-index: 44; }
+#tabla-container .morosos-sticky-table thead th:nth-child(3) { z-index: 43; }
+#tabla-container .morosos-sticky-table thead th:nth-child(4) { z-index: 42; }
+#tabla-container .morosos-sticky-table thead th:nth-child(5) { z-index: 41; }
+#tabla-container .morosos-sticky-table tbody td:nth-child(1) { z-index: 15; }
+#tabla-container .morosos-sticky-table tbody td:nth-child(2) { z-index: 14; }
+#tabla-container .morosos-sticky-table tbody td:nth-child(3) { z-index: 13; }
+#tabla-container .morosos-sticky-table tbody td:nth-child(4) { z-index: 12; }
+#tabla-container .morosos-sticky-table tbody td:nth-child(5) { z-index: 11; }
+#tabla-container .morosos-sticky-table thead th:nth-child(-n+5) {
+top: 0;
+background-color: rgb(241 245 249);
+}
+#tabla-container .morosos-sticky-table tbody td:nth-child(-n+5) {
+background-color: #fff;
+}
+#tabla-container .morosos-sticky-table tbody tr:hover td:nth-child(-n+5) {
+background-color: rgb(248 250 252);
+}
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--pagado td {
+background-color:rgb(93, 243, 108);
+}
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--pagado:hover td {
+background-color: rgb(93, 243, 108);
+}
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--promesa td {
+background-color:rgb(98, 223, 237); 
+}
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--promesa:hover td {
+background-color: rgb(98, 223, 237);
+}
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--default td {
+background-color: #fff;
+}
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--default:hover td {
+background-color: rgb(248 250 252);
+}
+#tabla-container .morosos-sticky-table tbody td.moroso-empty-placeholder {
+position: static;
+left: auto;
+min-width: unset;
+max-width: unset;
+width: auto;
+z-index: auto;
+box-shadow: none;
+}
+
+
+</style>
