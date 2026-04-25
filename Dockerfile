@@ -25,8 +25,7 @@ RUN mkdir -p storage/framework/{sessions,views,cache,testing} \
 # Cache de Laravel
 RUN php artisan config:cache \
     && php artisan route:cache \
-    && php artisan view:cache \
-    && php artisan cache:clear \
+    && php artisan view:cache
 
 EXPOSE 8080 
 
