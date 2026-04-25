@@ -16,8 +16,6 @@ RUN composer install --no-interaction --optimize-autoloader
 RUN apt-get update && apt-get install -y nodejs npm
 RUN npm install
 RUN npm run build
-RUN npm run dev
-RUN php artisan serve
 
 # Preparar Laravel
 RUN mkdir -p storage/framework/{sessions,views,cache,testing} \
