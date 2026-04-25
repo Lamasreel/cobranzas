@@ -12,8 +12,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 RUN composer install --no-interaction --optimize-autoloader
 
-RUN php artisan config:cache
+# Preparar Laravel
+RUN mkdir -p storage/framework/{sessions,views,cache,testing} \
+    storage/logs bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+# Cache de Laravel
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
 
 EXPOSE 8080
 
-CMD ["php", "-S", "0.0.0.0:${PORT:-8080}", "-t", "public"]
+# IMPORTANTE: usar shell para que tome $PORT
+CMD sh -c "php -S 0.0.0.0:${PORT:-8080} -t public"
