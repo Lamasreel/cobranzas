@@ -12,6 +12,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 RUN composer install --no-interaction --optimize-autoloader
 
+# Node + Vite
+RUN apt-get update && apt-get install -y nodejs npm
+RUN npm install
+RUN npm run build
+
 # Preparar Laravel
 RUN mkdir -p storage/framework/{sessions,views,cache,testing} \
     storage/logs bootstrap/cache \
