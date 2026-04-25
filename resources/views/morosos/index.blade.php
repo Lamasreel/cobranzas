@@ -43,48 +43,52 @@
 
         <div class="bg-white rounded-xl shadow border border-slate-200">
             <div class="p-5">
-                <form method="GET" action="{{ route('morosos.index') }}" 
-                      class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <form method="GET" action="{{ route('morosos.index') }}"
+                      class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700">
-                            Estado
-                        </label>
-                        <select name="estado"
-                            class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="">Todos</option>
-                            @foreach ($estados as $e)
-                                <option value="{{ $e->id }}" @selected(($filters['estado'] ?? '') === $e)>
-                                    {{ $e->estado }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div class="lg:col-span-4">
+                        <label class="block text-sm font-semibold text-slate-700">Estado</label>
+                        <input type="hidden" name="estado" id="estadoFilterInput" value="{{ (string) ($filters['estado'] ?? '') }}">
+                        <div id="estado-chips" class="mt-1 flex flex-wrap gap-2">
+                            <button type="button" data-estado="" class="estado-chip px-3 py-1.5 rounded-full border text-xs font-semibold transition">
+                                Todos
+                            </button>
+                            <button type="button" data-estado="2" class="estado-chip px-3 py-1.5 rounded-full border text-xs font-semibold transition">
+                                Pendiente
+                            </button>
+                            <button type="button" data-estado="3" class="estado-chip px-3 py-1.5 rounded-full border text-xs font-semibold transition">
+                                Promesa
+                            </button>
+                            <button type="button" data-estado="4" class="estado-chip px-3 py-1.5 rounded-full border text-xs font-semibold transition">
+                                Pagado
+                            </button>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700">
-                            Localidad
-                        </label>
-                        <select name="localidad"
-                            class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="">Todas</option>
+                    <div class="lg:col-span-5">
+                        <label class="block text-sm font-semibold text-slate-700">Localidad</label>
+                        <div class="relative mt-1">
+                            <select
+                                name="localidad"
+                                id="localidadFilterSelect"
+                                class="w-full rounded-xl border-slate-300 bg-white pr-10 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+                            >
+                                <option value="">Todas las localidades</option>
                             @foreach ($localidades as $loc)
-                                <option value="{{ $loc->id }}" @selected(($filters['localidad'] ?? '') === $loc)>
+                                <option value="{{ $loc->id }}" @selected((string) ($filters['localidad'] ?? '') === (string) $loc->id)>
                                     {{ $loc->nombre_corto }}
                                 </option>
                             @endforeach
-                        </select>
+                            </select>
+                            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <x-primary-button>
+                    <div class="lg:col-span-3 flex gap-2 lg:justify-end">
+                        <x-primary-button class="justify-center min-w-[110px]">
                             Filtrar
                         </x-primary-button>
 
-                        <a href="{{ route('morosos.index') }}"
-                           class="px-4 py-2 rounded-lg border text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                            Limpiar
-                        </a>
                         <a href="/morosos/pdf" target="_blank"
                            class="px-4 py-2 rounded-lg border text-sm font-semibold text-slate-700 hover:bg-slate-100">
                             Cartas
@@ -103,6 +107,17 @@
                     </span> registros
                 </div>
                 <div class="flex items-center gap-3">
+                    <button
+                        id="btn-marcar-seleccionados"
+                        type="button"
+                        data-action="{{ route('morosos.pagado_masivo') }}"
+                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span class="text-sm font-semibold">Marcar seleccionados</span>
+                        <span id="seleccionados-count" class="inline-flex items-center justify-center min-w-6 h-6 rounded-full bg-emerald-700 text-white text-xs px-1">0</span>
+                    </button>
 
                 <button id="prev-rango"
                     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-100 shadow">
@@ -166,6 +181,7 @@
 
             <!-- Totales -->
             <div class="mt-4 flex gap-6 text-sm">
+                <div><b>Morosos:</b> <span id="total-morosos" class="font-bold text-slate-800"></span></div>
                 <div><b>Titulares:</b> <span id="total-titulares"></span></div>
                 <div><b>Pagaron:</b> <span id="total-pagaron" class="text-green-600 font-bold"></span></div>
                 <div><b>Deben:</b> <span id="total-deben" class="text-red-600 font-bold"></span></div>
@@ -180,6 +196,9 @@
 
                     <thead class="bg-slate-100 text-slate-700 text-[11px] uppercase tracking-wide sticky top-0 z-40">
                         <tr>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">
+                                <input id="check-all-morosos" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                            </th>
                             <th class="py-2 px-2 border whitespace-nowrap">Orden</th>
                             <th class="py-2 px-2 border whitespace-nowrap">Tit. Gar.</th>
                             <th class="py-2 px-2 border whitespace-nowrap">DNI Titular</th>
@@ -221,13 +240,13 @@
 
                         @php
                             $estNorm = strtolower(trim((string) ($m->estado ?? '')));
-                            $idEst = (int) ($m->id_estado ?? 0);
-                            $esPagado = ($estadoIdPagado !== null && $idEst === (int) $estadoIdPagado)
-                                || $estNorm === 'pagado'
-                                || str_starts_with($estNorm, 'pagado ')
-                                || str_starts_with($estNorm, 'pagado,');
+                            $idEst = (int) ($m->estado_id_cliente ?? $m->id_estado ?? 0);
+                            $esPagado = $idEst === 4
+                                || ($estadoIdPagado !== null && $idEst === (int) $estadoIdPagado)
+                                || str_contains($estNorm, 'pagad');
                             $esPromesa = ! $esPagado && (
-                                ($estadoIdPromesa !== null && $idEst === (int) $estadoIdPromesa)
+                                $idEst === 3
+                                || ($estadoIdPromesa !== null && $idEst === (int) $estadoIdPromesa)
                                 || (str_contains($estNorm, 'promesa') && ! str_contains($estNorm, 'sin promesa'))
                             );
 
@@ -270,6 +289,14 @@
                             data-dias="{{ e($m->dias) }}"
                         >
 
+                            <td class="py-1.5 px-2 border text-center">
+                                <input
+                                    type="checkbox"
+                                    class="moroso-select-checkbox h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                    value="{{ $m->id }}"
+                                    @disabled($idEst === 4)
+                                >
+                            </td>
                             <td class="py-1.5 px-2 border">{{ $c }}</td>
                             <td class="py-1.5 px-2 border">{{ $m->titular_garantia }}</td>
                             <td class="py-1.5 px-2 border">{{ $m->documento_titular }}</td>
@@ -279,11 +306,11 @@
                                 {{ $m->nombre }}
                             </td>
 
-                            <td class="py-1.5 px-2 border max-w-[180px] truncate">
+                            <td class="py-1.5 px-2 border max-w-[180px] whitespace-normal break-words align-top">
                                 {{ $m->calle }}
                             </td>
 
-                            <td class="py-1.5 px-2 border max-w-[200px] truncate">
+                            <td class="py-1.5 px-2 border max-w-[200px] whitespace-normal break-words align-top">
                                 {{ $m->observaciones }}
                             </td>
 
@@ -342,7 +369,7 @@
                             <td class="py-1.5 px-2 border text-right">{{ $m->mar }}</td>
                             <td class="py-1.5 px-2 border text-right">{{ $m->mar_importe }}</td>
 
-                            <td class="py-1.5 px-2 border max-w-[200px] truncate">
+                            <td class="py-1.5 px-2 border max-w-[200px] whitespace-normal break-words align-top">
                                 {{ $m->datos_adicionales }}
                             </td>
 
@@ -387,7 +414,7 @@
 
                         @empty
                         <tr>
-                            <td colspan="30" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
+                            <td colspan="31" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
                                 No hay morosos para los filtros seleccionados.
                             </td>
                         </tr>
@@ -760,10 +787,25 @@ function closeTelefonosModal() {
 
 function marcarPagado() {
     if (!clienteId) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/morosos/pagado/' + clienteId;
 
+    const token = document.createElement('input');
+    token.type = 'hidden';
+    token.name = '_token';
+    token.value = '{{ csrf_token() }}';
+
+    form.appendChild(token);
+    document.body.appendChild(form);
+
+    confirmAndSubmitPagado(form, document.getElementById('modalCliente')?.innerText || 'Cliente');
+}
+
+function confirmAndSubmitPagado(form, clienteNombre) {
     Swal.fire({
         title: 'Marcar como pagado',
-        text: '¿Confirmás que este cliente ya pagó?',
+        text: `¿Confirmás que ${clienteNombre} ya pagó?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sí, marcar',
@@ -779,22 +821,42 @@ function marcarPagado() {
             didOpen: () => Swal.showLoading()
         });
 
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/morosos/pagado/' + clienteId;
-
-        const token = document.createElement('input');
-        token.type = 'hidden';
-        token.name = '_token';
-        token.value = '{{ csrf_token() }}';
-
-        form.appendChild(token);
-        document.body.appendChild(form);
         form.submit();
     });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const estadoInput = document.getElementById('estadoFilterInput');
+    const estadoChips = document.querySelectorAll('.estado-chip');
+    const estadoActivo = String(estadoInput?.value ?? '');
+    const selectAll = document.getElementById('check-all-morosos');
+    const selectables = document.querySelectorAll('.moroso-select-checkbox');
+    const btnMasivo = document.getElementById('btn-marcar-seleccionados');
+    const countEl = document.getElementById('seleccionados-count');
+
+    function paintEstadoChips(value) {
+        estadoChips.forEach((chip) => {
+            const selected = String(chip.dataset.estado ?? '') === String(value ?? '');
+            chip.classList.toggle('bg-emerald-600', selected);
+            chip.classList.toggle('text-white', selected);
+            chip.classList.toggle('border-emerald-600', selected);
+            chip.classList.toggle('shadow', selected);
+            chip.classList.toggle('bg-white', !selected);
+            chip.classList.toggle('text-slate-700', !selected);
+            chip.classList.toggle('border-slate-300', !selected);
+            chip.classList.toggle('hover:bg-slate-100', !selected);
+        });
+    }
+
+    paintEstadoChips(estadoActivo);
+    estadoChips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+            if (!estadoInput) return;
+            estadoInput.value = chip.dataset.estado ?? '';
+            paintEstadoChips(estadoInput.value);
+        });
+    });
+
     document.querySelectorAll('tr[data-moroso-id]').forEach((row) => {
         row.addEventListener('click', () => {
             openModal(
@@ -807,7 +869,98 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-     document.querySelectorAll('button[data-telefonos]').forEach((btn) => {
+    function getSelectedIds() {
+        return Array.from(selectables)
+            .filter((el) => el.checked && !el.disabled)
+            .map((el) => Number(el.value))
+            .filter((v) => Number.isFinite(v) && v > 0);
+    }
+
+    function syncBulkUi() {
+        const ids = getSelectedIds();
+        const enabled = ids.length > 0;
+
+        if (btnMasivo) btnMasivo.disabled = !enabled;
+        if (countEl) countEl.textContent = String(ids.length);
+
+        if (selectAll) {
+            const enabledChecks = Array.from(selectables).filter((el) => !el.disabled);
+            const checkedCount = enabledChecks.filter((el) => el.checked).length;
+            selectAll.checked = enabledChecks.length > 0 && checkedCount === enabledChecks.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < enabledChecks.length;
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('click', (e) => e.stopPropagation());
+        selectAll.addEventListener('change', () => {
+            const checked = !!selectAll.checked;
+            selectables.forEach((el) => {
+                if (el.disabled) return;
+                el.checked = checked;
+            });
+            syncBulkUi();
+        });
+    }
+
+    selectables.forEach((check) => {
+        check.addEventListener('click', (e) => e.stopPropagation());
+        check.addEventListener('change', (e) => {
+            e.stopPropagation();
+            syncBulkUi();
+        });
+    });
+
+    if (btnMasivo) {
+        btnMasivo.addEventListener('click', () => {
+            const ids = getSelectedIds();
+            if (!ids.length) return;
+
+            Swal.fire({
+                title: 'Marcar seleccionados como pagados',
+                text: `Se actualizarán ${ids.length} clientes.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, marcar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#16a34a'
+            }).then((r) => {
+                if (!r.isConfirmed) return;
+
+                Swal.fire({
+                    title: 'Actualizando estados…',
+                    text: 'Por favor esperá',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = btnMasivo.dataset.action || '/morosos/pagado-masivo';
+
+                const token = document.createElement('input');
+                token.type = 'hidden';
+                token.name = '_token';
+                token.value = '{{ csrf_token() }}';
+                form.appendChild(token);
+
+                ids.forEach((id) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'ids[]';
+                    input.value = String(id);
+                    form.appendChild(input);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+            });
+        });
+    }
+
+    syncBulkUi();
+
+    document.querySelectorAll('button[data-telefonos]').forEach((btn) => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation(); // 🔥 ESTO ES CLAVE
 
@@ -1096,12 +1249,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const resumen = data[rango.key] || {};
 
             label.textContent = rango.label;
-
-                    filtrarTabla(rango);
-
+            filtrarTabla(rango);
 
             tbody.innerHTML = '';
 
+            let totalMorosos = 0;
             let totalTitulares = 0;
             let totalPagaron = 0;
 
@@ -1111,6 +1263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? ((r.pagaron / r.total) * 100).toFixed(0)
                     : 0;
 
+                totalMorosos += r.total;
                 totalTitulares += r.tit;
                 totalPagaron += r.pagaron;
 
@@ -1130,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `);
             });
 
+            document.getElementById('total-morosos').textContent = totalMorosos;
             document.getElementById('total-titulares').textContent = totalTitulares;
             document.getElementById('total-pagaron').textContent = totalPagaron;
             document.getElementById('total-deben').textContent = totalTitulares - totalPagaron;

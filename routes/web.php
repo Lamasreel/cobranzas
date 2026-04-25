@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/morosos/promesa', [MorososController::class, 'actualizarPromesa'])->name('morosos.promesa');
 Route::post('/morosos/pagado/{id}', [MorososController::class, 'marcarPagado'])->name('morosos.pagado');
+Route::post('/morosos/pagado-masivo', [MorososController::class, 'marcarPagadosMasivo'])->name('morosos.pagado_masivo');
 Route::post('/morosos/whatsapp-test', [MorososController::class, 'enviarWhatsappTest'])
     ->middleware(['auth', 'verified'])
     ->name('morosos.whatsapp_test');

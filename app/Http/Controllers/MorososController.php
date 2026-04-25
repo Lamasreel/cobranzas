@@ -106,14 +106,33 @@ class MorososController extends Controller
     public function marcarPagado($id)
     {
         $estadoPagado = DB::table('estado')
-            ->where('estado', 'Pagado')
+            ->whereRaw('LOWER(estado) LIKE ?', ['%pagad%'])
             ->value('id');
 
         DB::table('cliente')
             ->where('id', $id)
             ->update([
-                'estado' => $estadoPagado,
-                'dias' => 0
+                'estado' => $estadoPagado ?? ESTADO_PAGADO,
+            ]);
+
+        return back();
+    }
+
+    public function marcarPagadosMasivo(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'min:1'],
+        ]);
+
+        $estadoPagado = DB::table('estado')
+            ->whereRaw('LOWER(estado) LIKE ?', ['%pagad%'])
+            ->value('id');
+
+        DB::table('cliente')
+            ->whereIn('id', $data['ids'])
+            ->update([
+                'estado' => $estadoPagado ?? ESTADO_PAGADO,
             ]);
 
         return back();
@@ -132,8 +151,7 @@ class MorososController extends Controller
         $estadoIdPagado = $estados->first(function ($e) {
             $t = strtolower(trim((string) ($e->estado ?? '')));
 
-            return $t === 'pagado' || str_starts_with($t, 'pagado ')
-                || str_starts_with($t, 'pagado,');
+            return str_contains($t, 'pagad');
         })?->id;
         $estadoIdPromesa = $estados->first(function ($e) {
             $t = strtolower(trim((string) ($e->estado ?? '')));
@@ -145,20 +163,25 @@ class MorososController extends Controller
 
         $sql = "
                 SELECT c.*,
+                    c.estado as estado_id_cliente,
                     l.nombre_corto AS localidad,
                     e.id as id_estado,
                     e.estado
                 FROM cliente c
                 LEFT JOIN localidad l ON c.localidad = l.id
                 LEFT JOIN estado e ON c.estado = e.id
+                WHERE 1=1
         ";
 
         $bindings = [];
 
-        $estado = $request->input('estado', '');
+        $estado = trim((string) $request->input('estado', ''));
+        if (!in_array($estado, [(string) ESTADO_PENDIENTE, (string) ESTADO_PROMESA, (string) ESTADO_PAGADO], true)) {
+            $estado = '';
+        }
         if ($estado !== '') {
             $sql .= " AND c.estado = ?";
-            $bindings[] = $estado;
+            $bindings[] = (int) $estado;
         }
 
         $periodo = $request->input('periodo', '');
@@ -168,10 +191,10 @@ class MorososController extends Controller
             $bindings[] = $periodos[$periodo]['max'];
         }
 
-        $localidad = $request->input('localidad', '');
-        if ($localidad !== '') {
+        $localidad = trim((string) $request->input('localidad', ''));
+        if ($localidad !== '' && ctype_digit($localidad)) {
             $sql .= " AND c.localidad = ?";
-            $bindings[] = $localidad;
+            $bindings[] = (int) $localidad;
         }
 
         $sql .= " ORDER BY c.dias DESC";
@@ -192,14 +215,14 @@ class MorososController extends Controller
         
         foreach ($morosos as $m) {
             $estNombre = strtolower(trim((string) ($m->estado ?? '')));
-            $idEst = (int) ($m->id_estado ?? 0);
+            $idEst = (int) ($m->estado_id_cliente ?? $m->id_estado ?? 0);
 
-            $esPagadoFila = ($estadoIdPagado !== null && $idEst === (int) $estadoIdPagado)
-                || $estNombre === 'pagado'
-                || str_starts_with($estNombre, 'pagado ')
-                || str_starts_with($estNombre, 'pagado,');
+            $esPagadoFila = $idEst === ESTADO_PAGADO
+                || ($estadoIdPagado !== null && $idEst === (int) $estadoIdPagado)
+                || str_contains($estNombre, 'pagad');
             $esPromesaFila = ! $esPagadoFila && (
-                ($estadoIdPromesa !== null && $idEst === (int) $estadoIdPromesa)
+                $idEst === ESTADO_PROMESA
+                || ($estadoIdPromesa !== null && $idEst === (int) $estadoIdPromesa)
                 || (str_contains($estNombre, 'promesa') && ! str_contains($estNombre, 'sin promesa'))
             );
 
@@ -231,7 +254,7 @@ class MorososController extends Controller
             '90_120' => ['label' => '90-120 días', 'min' => 90, 'max' => 120],
             '120_150' => ['label' => '120-150 días', 'min' => 120, 'max' => 150],
             '150_180' => ['label' => '150-180 días', 'min' => 150, 'max' => 180],
-            '180_365' => ['label' => '180-365', 'min' => 365, 'max' => 365],
+            '180_365' => ['label' => '180-365', 'min' => 181, 'max' => 365],
             '365_plus' => ['label' => '365+ días', 'min' => 365, 'max' => 99999],
         ];
     
@@ -250,12 +273,11 @@ class MorososController extends Controller
                     $total = $items->count();
                     $pagaron = $items->filter(function ($row) use ($estadoIdPagado) {
                         $n = strtolower(trim((string) ($row->estado ?? '')));
-                        $id = (int) ($row->id_estado ?? 0);
+                        $id = (int) ($row->estado_id_cliente ?? $row->id_estado ?? 0);
 
-                        return ($estadoIdPagado !== null && $id === (int) $estadoIdPagado)
-                            || $n === 'pagado'
-                            || str_starts_with($n, 'pagado ')
-                            || str_starts_with($n, 'pagado,');
+                        return $id === ESTADO_PAGADO
+                            || ($estadoIdPagado !== null && $id === (int) $estadoIdPagado)
+                            || str_contains($n, 'pagad');
                     })->count();
     
                     return [
