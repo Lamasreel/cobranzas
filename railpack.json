@@ -1,5 +1,11 @@
 {
     "packages": {
       "php": "8.2"
+    },
+    "apt": [
+      "bison"
+    ],
+    "start": {
+      "cmd": "php -S 0.0.0.0:$PORT -t public"
     }
   }
