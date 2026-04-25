@@ -17,9 +17,6 @@ RUN composer install --no-interaction --optimize-autoloader
 # 🔥 IMPORTANTE: evitar modo Vite DEV
 RUN rm -f public/hot
 
-# 🔥 Forzar modo producción para Vite
-ENV NODE_ENV=production
-
 # Instalar frontend y compilar
 RUN npm install
 RUN npm run build
