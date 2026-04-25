@@ -2,9 +2,25 @@
     "packages": {
       "php": "8.2"
     },
-    "apt": [
-      "bison"
-    ],
+    "apt": {
+      "packages": [
+        "bison",
+        "libonig-dev",
+        "libxml2-dev",
+        "libzip-dev",
+        "libcurl4-openssl-dev",
+        "pkg-config",
+        "libssl-dev",
+        "zlib1g-dev",
+        "libicu-dev",
+        "g++",
+        "make",
+        "autoconf",
+        "re2c",
+        "pkgconf",
+        "plocate"
+      ]
+    },
     "start": {
       "cmd": "php -S 0.0.0.0:$PORT -t public"
     }
