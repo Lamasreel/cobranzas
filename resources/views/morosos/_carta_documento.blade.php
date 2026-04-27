@@ -99,7 +99,7 @@
     </div>
 
     <div class="firma">
-        <img src="{{ base_path('assets/images/firma_abogado.png') }}" width="70">
+        <img src="{{ base_path('https://mindful-balance-production-7f46.up.railway.app/assets/images/firma_abogado.png') }}" width="70">
     </div>
 
 </div>
