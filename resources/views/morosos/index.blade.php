@@ -18,10 +18,7 @@
                     class="inline-flex items-center justify-center h-10 w-11 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 shadow-sm"
                     title="Automatización WhatsApp"
                 >
-                    <svg viewBox="0 0 24 24" class="w-6 h-6" aria-hidden="true">
-                        <path fill="currentColor" d="M7.2 3.1c-.2-.6.1-1.2.7-1.4.6-.2 1.2.1 1.4.7.1.3.1.6 0 .9.6.3 1.1.7 1.5 1.2.4-.5.9-.9 1.5-1.2-.1-.3-.1-.6 0-.9.2-.6.8-.9 1.4-.7.6.2.9.8.7 1.4-.1.3-.3.5-.6.7.3.6.4 1.3.4 2 0 2.2-1.2 4.1-3 5.1v1.1c0 .6-.4 1-1 1s-1-.4-1-1v-1.1c-1.8-1-3-2.9-3-5.1 0-.7.1-1.4.4-2-.3-.2-.5-.4-.6-.7z"/>
-                        <path fill="currentColor" fill-opacity=".25" d="M6 14.5c0-1.1.9-2 2-2h8c1.1 0 2 .9 2 2v1c0 3.3-2.7 6-6 6s-6-2.7-6-6v-1z"/>
-                    </svg>
+                    <i class="fa-solid fa-gear"></i>
                 </button>
                 <button
                     type="button"
@@ -29,11 +26,7 @@
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow"
                     title="Enviar WhatsApp de prueba"
                 >
-                    <svg viewBox="0 0 32 32" class="w-5 h-5 fill-white" aria-hidden="true">
-                        <path d="M19.11 17.44c-.28-.14-1.64-.81-1.9-.9-.25-.09-.44-.14-.63.14-.19.28-.72.9-.88 1.09-.16.19-.32.21-.6.07-.28-.14-1.18-.43-2.25-1.38-.83-.74-1.39-1.65-1.55-1.93-.16-.28-.02-.43.12-.57.13-.13.28-.32.42-.48.14-.16.19-.28.28-.46.09-.19.05-.35-.02-.49-.07-.14-.63-1.52-.86-2.08-.23-.55-.47-.48-.63-.49h-.54c-.19 0-.49.07-.74.35-.25.28-.97.95-.97 2.33 0 1.38 1 2.72 1.14 2.9.14.19 1.97 3.01 4.77 4.22.66.29 1.18.46 1.58.59.66.21 1.26.18 1.74.11.53-.08 1.64-.67 1.87-1.32.23-.65.23-1.21.16-1.32-.07-.12-.25-.19-.53-.33z"/>
-                        <path d="M26.67 5.33A13.21 13.21 0 0 0 16.02 0C8.73 0 2.8 5.93 2.8 13.22c0 2.33.61 4.6 1.77 6.6L2.67 32l12.47-1.86a13.17 13.17 0 0 0 6.33 1.62h.01c7.29 0 13.22-5.93 13.22-13.22 0-3.53-1.37-6.85-3.86-9.34zM21.49 29.2h-.01a11 11 0 0 1-5.61-1.53l-.4-.24-7.4 1.1 1.1-7.2-.26-.42a10.96 10.96 0 1 1 12.58 8.29z"/>
-                    </svg>
-                    WhatsApp
+                <i class="fa-brands fa-whatsapp"></i>WhatsApp
                 </button>
             </div>
         </div>
@@ -80,7 +73,6 @@
                                 </option>
                             @endforeach
                             </select>
-                            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                         </div>
                     </div>
 
@@ -135,6 +127,7 @@
                 </button>
                 <button id="toggle-resumen"
                     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-100 shadow text-sm font-semibold">
+                    <i class="fa-regular fa-calendar"></i>
                     Ver resumen
                 </button>
 
@@ -280,7 +273,7 @@
                         @endphp
 
                         <tr
-                            class="border-b transition cursor-pointer align-middle {{ $rowEstadoClass }}"
+                            class="border-b transition cursor-pointer align-middle text-center {{ $rowEstadoClass }}"
                             data-moroso-id="{{ $m->id }}"
                             data-moroso-nombre="{{ e($m->nombre) }}"
                             data-moroso-estado="{{ e($m->estado) }}"
