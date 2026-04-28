@@ -53,6 +53,13 @@ Route::get('/promesa_cliente', [PromesaClienteController::class, 'index'])
 Route::post('/promesa_cliente', [PromesaClienteController::class, 'store'])
     ->name('promesa_cliente.store');
 
+    Route::get('/morosos/subir-excel', function () {
+        return view('morosos.subir_excel');
+    });
+    Route::post('/morosos/subir-excel', [MorososController::class, 'subirExcel'])
+    ->middleware(['auth', 'verified'])
+    ->name('morosos.subir-excel');
+
     Route::get('/morosos/pdf', [MorososController::class, 'generarPDF']);
 
 require __DIR__.'/auth.php';

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\WhatsappSender;
 use TCPDF;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\MorososExcelImport;
 use App\Support\WhatsappAutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -69,7 +71,7 @@ class MorososController extends Controller
         LEFT JOIN cliente t ON c.documento_titular = t.documento
         LEFT JOIN localidad l ON c.localidad = l.id
         LEFT JOIN estado e ON c.estado = e.id
-        ORDER BY c.titular_garantia ASC, c.dias DESC
+        ORDER BY c.titular_garantia DESC, c.dias DESC
     ";
     
         $morosos = DB::select($sql);
@@ -116,6 +118,18 @@ class MorososController extends Controller
             ]);
 
         return back();
+    }
+
+    public function subirExcel(Request $request)
+    {
+        $request->validate([
+            'archivo' => 'required|file|mimes:xlsx,xls,csv'
+        ]);
+    
+        Excel::import(new MorososExcelImport, $request->file('archivo'));
+    
+        return redirect()->route('morosos.index')
+        ->with('success', 'Excel importado correctamente.');
     }
 
     public function marcarPagadosMasivo(Request $request)
@@ -227,17 +241,17 @@ class MorososController extends Controller
             );
 
             if ($esPagadoFila) {
-                $totales['pagados'] += $m->saldo_total;
+                $totales['pagados'] += $m->saldo_vencido + $m->interes_punitorio;
                 $conteo['pagados']++;
                 continue;
             }
             if ($esPromesaFila) {
-                $totales['promesa'] += $m->saldo_total;
+                $totales['promesa'] += $m->saldo_vencido + $m->interes_punitorio;
                 $conteo['promesa']++;
                 continue;
             }
             if ($idEst === ESTADO_PENDIENTE || str_contains($estNombre, 'pendiente')) {
-                $totales['pendiente'] += $m->saldo_total;
+                $totales['pendiente'] += $m->saldo_vencido + $m->interes_punitorio;
                 $conteo['pendiente']++;
             }
         }

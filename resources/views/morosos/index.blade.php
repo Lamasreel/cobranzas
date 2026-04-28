@@ -2,6 +2,16 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
+@if(session('success'))
+<script>
+    Swal.fire({
+        icon: 'success',
+        title: 'Importación completada',
+        text: "{{ session('success') }}",
+        confirmButtonColor: '#16a34a'
+    });
+</script>
+@endif
 
 <x-app-layout> 
     <x-slot name="header">
@@ -11,6 +21,14 @@
                 <p class="text-sm text-slate-500"> Gestión y seguimiento de clientes en mora </p>
             </div>
 
+            <button
+                type="button"
+                id="btn-import-excel"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow"
+            >
+                <i class="fa-solid fa-file-excel"></i>
+                Importar Excel
+            </button>
             <div class="flex items-center gap-2">
                 <button
                     type="button"
@@ -541,6 +559,37 @@
     </div>
 </x-app-layout>
 
+<div id="excel-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+
+        <button onclick="closeExcelModal()" class="absolute top-2 right-2 text-slate-500 text-xl">✕</button>
+
+        <h2 class="text-xl font-bold mb-3">
+            Importar Excel
+        </h2>
+
+        <form id="form-import-excel" action="{{ route('morosos.subir-excel') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+            @csrf
+
+            <input
+                type="file"
+                name="archivo"
+                accept=".xlsx,.xls,.csv"
+                required
+                class="w-full border rounded-lg p-2"
+            >
+
+            <button
+                type="submit"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-semibold"
+            >
+                Subir e importar
+            </button>
+        </form>
+
+    </div>
+</div>
+
 <div id="wa-auto-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
         <button type="button" onclick="closeWaAutoModal()" class="absolute top-2 right-2 text-slate-500 text-xl">✕</button>
@@ -647,7 +696,7 @@ document.addEventListener("DOMContentLoaded", function () {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Montos ($)'
+                    text: 'Montos Saldo Vencido + Intereses Punitorios ($)'
                 }
             }
         }
@@ -700,7 +749,7 @@ document.addEventListener("DOMContentLoaded", function () {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Escenario futuro'
+                    text: 'Escenario futuro (Saldo Vencido + Intereses Punitorios)'
                 }
             }
         }
@@ -1371,7 +1420,68 @@ filas.forEach(fila => {
     fila.style.display = mostrar ? '' : 'none';
 });
 }
+
+
+
+            document.addEventListener('DOMContentLoaded', () => {
+
+            const btn = document.getElementById('btn-import-excel');
+            const modal = document.getElementById('excel-modal');
+
+            if (btn && modal) {
+                btn.addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            }
+
+            });
+
+            function closeExcelModal() {
+            const modal = document.getElementById('excel-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            }
+
+            
+document.addEventListener('DOMContentLoaded', () => {
+    const formExcel = document.getElementById('form-import-excel');
+
+    if (!formExcel) return;
+
+    formExcel.addEventListener('submit', function () {
+        let segundos = 0;
+
+        Swal.fire({
+            title: 'Importando Excel...',
+            html: `
+                <div class="text-sm text-slate-600">
+                    Procesando archivo. No cierres esta ventana.
+                </div>
+                <div class="mt-3 text-lg font-bold text-emerald-600">
+                    <span id="contador-importacion">0</span> segundos
+                </div>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+
+                const contador = document.getElementById('contador-importacion');
+
+                window.importExcelTimer = setInterval(() => {
+                    segundos++;
+                    if (contador) {
+                        contador.textContent = segundos;
+                    }
+                }, 1000);
+            }
+        });
+    });
+});
 </script>
+
 
  <style>
  .limit-2-lines {

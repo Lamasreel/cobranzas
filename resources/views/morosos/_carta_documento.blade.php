@@ -72,10 +72,10 @@
     <div style="font-weight: bold;">
         Señor/a:
         <span class="negrita subrayado">
-        @if($m->titular_garantia == 1)
+        @if($m->titular_garantia == 'TIT')
                 {{ strtoupper($m->nombre) }}
             @else
-                {{ strtoupper($m->nombre) }} (GARANTE DE: {{ strtoupper($m->nombre_titular ?? 'SIN TITULAR') }})
+                {{ strtoupper($m->nombre) }} GARANTE DE: {{ strtoupper($m->nombre_titular ?? 'SIN TITULAR') }}
             @endif
         </span>
     </div>
@@ -99,7 +99,7 @@
     </div>
 
     <div class="firma">
-        <img src="{{ base_path('https://mindful-balance-production-7f46.up.railway.app/assets/images/firma_abogado.png') }}" width="70">
+        <img src="{{ base_path('assets/images/firma_abogado.png') }}" width="70">
     </div>
 
 </div>

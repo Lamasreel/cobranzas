@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -19,10 +21,7 @@
                 <div class="mb-6">
                     <div class="flex items-center gap-3">
                         <div class="h-11 w-11 rounded-xl bg-emerald-600 ring-1 ring-emerald-500 flex items-center justify-center shadow-sm">
-                            <svg viewBox="0 0 32 32" class="w-6 h-6 fill-white" aria-hidden="true">
-                                <path d="M19.11 17.44c-.28-.14-1.64-.81-1.9-.9-.25-.09-.44-.14-.63.14-.19.28-.72.9-.88 1.09-.16.19-.32.21-.6.07-.28-.14-1.18-.43-2.25-1.38-.83-.74-1.39-1.65-1.55-1.93-.16-.28-.02-.43.12-.57.13-.13.28-.32.42-.48.14-.16.19-.28.28-.46.09-.19.05-.35-.02-.49-.07-.14-.63-1.52-.86-2.08-.23-.55-.47-.48-.63-.49h-.54c-.19 0-.49.07-.74.35-.25.28-.97.95-.97 2.33 0 1.38 1 2.72 1.14 2.9.14.19 1.97 3.01 4.77 4.22.66.29 1.18.46 1.58.59.66.21 1.26.18 1.74.11.53-.08 1.64-.67 1.87-1.32.23-.65.23-1.21.16-1.32-.07-.12-.25-.19-.53-.33z"/>
-                                <path d="M26.67 5.33A13.21 13.21 0 0 0 16.02 0C8.73 0 2.8 5.93 2.8 13.22c0 2.33.61 4.6 1.77 6.6L2.67 32l12.47-1.86a13.17 13.17 0 0 0 6.33 1.62h.01c7.29 0 13.22-5.93 13.22-13.22 0-3.53-1.37-6.85-3.86-9.34zM21.49 29.2h-.01a11 11 0 0 1-5.61-1.53l-.4-.24-7.4 1.1 1.1-7.2-.26-.42a10.96 10.96 0 1 1 12.58 8.29z"/>
-                            </svg>
+                        <i class="fa-brands fa-whatsapp" style="color: white; font-size: 1.5rem;"></i>
                         </div>
                         <div>
                             <div class="text-xl font-bold leading-tight text-slate-900">Promesa de pago</div>
@@ -32,6 +31,9 @@
                 </div>
 
                 <div class="bg-white shadow-xl shadow-slate-900/5 ring-1 ring-slate-200/70 rounded-2xl p-6 sm:p-8">
+                @php
+                    $tienePromesa = $cliente && $cliente->fecha_promesa_pago;
+                @endphp
                     <form method="GET" action="{{ route('promesa_cliente') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                         <div class="sm:col-span-2">
                             <label class="block text-sm font-semibold text-slate-700">Documento</label>
@@ -70,6 +72,23 @@
                             </ul>
                         </div>
                     @endif
+                    @if ($cliente && $cliente->fecha_promesa_pago)
+                        <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Promesa ya registrada',
+                                html: `
+                                    <div class="text-left">
+                                        <div><b>Fecha:</b> {{ $cliente->fecha_promesa_pago }}</div>
+                                        <div class="mt-1"><b>Observaciones:</b> {{ $cliente->observaciones_promesa ?? '—' }}</div>
+                                    </div>
+                                `,
+                                confirmButtonColor: '#f59e0b'
+                            });
+                        });
+                        </script>
+                        @endif
 
                     <div class="mt-6">
                         @if ($documento !== '' && !$cliente)
@@ -97,6 +116,8 @@
                                                 type="date"
                                                 name="fecha_promesa_pago"
                                                 value="{{ old('fecha_promesa_pago', $cliente->fecha_promesa_pago ?? '') }}"
+                                                min="{{ date('Y-m-d') }}"
+                                                {{ $tienePromesa ? 'disabled' : '' }}
                                                 class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
                                                 required
                                             >
@@ -106,10 +127,12 @@
                                             <label class="block text-sm font-semibold text-slate-700">Observaciones</label>
                                             <textarea
                                                 name="observaciones_promesa"
+                                                {{ $tienePromesa ? 'disabled' : '' }}
                                                 class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
                                                 rows="4"
-                                                placeholder="Ej: se compromete a abonar el día ..."
-                                            >{{ old('observaciones_promesa', $cliente->observaciones_promesa ?? '') }}</textarea>
+                                            >
+                                            {{ old('observaciones_promesa', $cliente->observaciones_promesa ?? '') }}
+                                            </textarea>
                                         </div>
 
                                         <div class="sm:col-span-2 flex items-center justify-between gap-3">
@@ -121,7 +144,8 @@
                                             </a>
                                             <button
                                                 type="submit"
-                                                class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow"
+                                                {{ $tienePromesa ? 'disabled' : '' }}
+                                                class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow disabled:bg-slate-400"
                                             >
                                                 Guardar promesa
                                             </button>

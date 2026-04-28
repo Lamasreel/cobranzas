@@ -24,32 +24,42 @@ class PromesaClienteController extends Controller
             'cliente' => $cliente,
         ]);
     }
-
     public function store(Request $request)
     {
         $data = $request->validate([
             'documento' => ['required', 'string'],
-            'fecha_promesa_pago' => ['required', 'date'],
+            'fecha_promesa_pago' => ['required', 'date', 'after_or_equal:today'],
             'observaciones_promesa' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'fecha_promesa_pago.after_or_equal' => 'La fecha de promesa no puede ser anterior a hoy.',
         ]);
-
-        $updated = DB::table('cliente')
+    
+        $cliente = DB::table('cliente')
+            ->where('documento', $data['documento'])
+            ->first();
+    
+        if (!$cliente) {
+            return back()
+                ->withInput()
+                ->with('error', 'No se encontró un cliente con ese documento.');
+        }
+    
+        if (!empty($cliente->fecha_promesa_pago) || (int) $cliente->estado === 3) {
+            return back()
+                ->withInput()
+                ->with('error', 'Este cliente ya tiene una promesa de pago cargada.');
+        }
+    
+        DB::table('cliente')
             ->where('documento', $data['documento'])
             ->update([
                 'fecha_promesa_pago' => $data['fecha_promesa_pago'],
                 'observaciones_promesa' => $data['observaciones_promesa'] ?? null,
                 'estado' => 3,
             ]);
-
-        if ($updated === 0) {
-            return back()
-                ->withInput()
-                ->with('error', 'No se encontró un cliente con ese documento.');
-        }
-
+    
         return redirect()
             ->route('promesa_cliente', ['documento' => $data['documento']])
             ->with('success', 'Promesa guardada.');
     }
 }
-
