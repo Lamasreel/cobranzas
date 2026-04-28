@@ -13,7 +13,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN composer install --no-interaction --optimize-autoloader
+RUN composer install 
 
 # Eliminar Vite dev
 RUN rm -f public/hot
