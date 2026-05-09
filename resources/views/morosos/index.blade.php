@@ -190,7 +190,6 @@
                 </table>
             </div>
 
-            <!-- Totales -->
             <div class="mt-4 flex gap-6 text-sm">
                 <div><b>Morosos:</b> <span id="total-morosos" class="font-bold text-slate-800"></span></div>
                 <div><b>Titulares:</b> <span id="total-titulares"></span></div>
@@ -553,52 +552,49 @@
                             <div class="bg-white p-4 rounded-xl shadow">
                                 <canvas id="graficoPrediccion"></canvas>
                             </div>
-
                         </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>
 
-<div id="excel-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+    <div id="excel-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+            <button onclick="closeExcelModal()" class="absolute top-2 right-2 text-slate-500 text-xl">✕</button>
+            <h2 class="text-xl font-bold mb-3">
+                Importar Excel
+            </h2>
 
-        <button onclick="closeExcelModal()" class="absolute top-2 right-2 text-slate-500 text-xl">✕</button>
-
-        <h2 class="text-xl font-bold mb-3">
-            Importar Excel
-        </h2>
-
-        <form id="form-import-excel" action="{{ route('morosos.subir-excel') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-            @csrf
-
-            <input
-                type="file"
-                name="archivo"
-                accept=".xlsx,.xls,.csv"
-                required
-                class="w-full border rounded-lg p-2"
-            >
-
-            <button
-                type="submit"
-                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-semibold"
-            >
-                Subir e importar
-            </button>
-        </form>
-
+            <form id="form-import-excel" action="{{ route('morosos.subir-excel') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf
+                <input
+                    type="file"
+                    name="archivo"
+                    accept=".xlsx,.xls,.csv"
+                    required
+                    class="w-full border rounded-lg p-2"
+                >
+                <button
+                    type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-semibold"
+                >
+                    Subir e importar
+                </button>
+            </form>
+        </div>
     </div>
-</div>
 
 <div id="wa-auto-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
         <button type="button" onclick="closeWaAutoModal()" class="absolute top-2 right-2 text-slate-500 text-xl">✕</button>
-
-        <h2 class="text-xl font-bold mb-1">WhatsApp automático</h2>
+        <h2 class="text-xl font-bold mb-1">
+            WhatsApp automático
+        </h2>
         <p class="text-sm text-slate-500 mb-4">
             Se envía en el día del mes y hora configurados (clientes en promesa con fecha de promesa = hoy).
         </p>
-
         <div class="space-y-4">
             <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
                 <div>
@@ -630,11 +626,9 @@
     </div>
 </div>
 
-<div
-    id="whatsapp-config"
+<div id="whatsapp-config"
     data-url="{{ route('morosos.whatsapp_test') }}"
-    data-csrf="{{ csrf_token() }}"
-></div>
+    data-csrf="{{ csrf_token() }}"></div>
 
 <div
     id="wa-auto-bootstrap"
