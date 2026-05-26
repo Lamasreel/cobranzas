@@ -37,9 +37,10 @@ return [
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID', '1069808222884117'),
         // Número de prueba (sin +)
         'to' => env('WHATSAPP_TEST_TO', '5493865250447'),
-        'template' => env('WHATSAPP_TEMPLATE', 'hello_world'),
-        'lang' => env('WHATSAPP_TEMPLATE_LANG', 'en_US'),
-
+        'template' => env('WHATSAPP_TEMPLATE', 'primer_aviso_mora'),
+        'lang' => env('WHATSAPP_TEMPLATE_LANG', 'es_ARG'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+        'version' => env('WHATSAPP_API_VERSION', 'v23.0'),
         // Recordatorios automáticos (Scheduler)
         'auto_enabled' => env('WHATSAPP_AUTO_ENABLED', false),
         // Día del mes (1-31) en el que corre el job (además valida la regla de negocio abajo)
@@ -51,8 +52,8 @@ return [
 
         // Regla por defecto: clientes en promesa con fecha_promesa_pago = hoy
         'auto_estado_promesa_id' => (int) env('WHATSAPP_AUTO_ESTADO_PROMESA_ID', 3),
-        'auto_template' => env('WHATSAPP_AUTO_TEMPLATE', env('WHATSAPP_TEMPLATE', 'hello_world')),
-        'auto_template_lang' => env('WHATSAPP_AUTO_TEMPLATE_LANG', env('WHATSAPP_TEMPLATE_LANG', 'en_US')),
+        'auto_template' => env('WHATSAPP_AUTO_TEMPLATE', env('WHATSAPP_TEMPLATE', 'primer_aviso_mora')),
+        'auto_template_lang' => env('WHATSAPP_AUTO_TEMPLATE_LANG', env('WHATSAPP_TEMPLATE_LANG', 'es_ARG')),
         // JSON opcional con "components" del template (si tu template tiene variables/botón URL dinámico)
         'auto_template_components_json' => env('WHATSAPP_AUTO_TEMPLATE_COMPONENTS_JSON', ''),
     ],

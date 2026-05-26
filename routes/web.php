@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MorososController;
+use App\Http\Controllers\DemandadoController;
 use App\Http\Controllers\PromesaClienteController;
+use App\Http\Controllers\CartasController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +29,12 @@ Route::get('/dashboard', function () {
 Route::get('/morosos', [MorososController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('morosos.index');
+Route::get('/demandado', [DemandadoController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('demandado.index');
+Route::get('/cartas', [CartasController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('cartas.index');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/morosos/whatsapp-auto', [MorososController::class, 'whatsappAutomationShow'])
@@ -59,7 +67,16 @@ Route::post('/promesa_cliente', [PromesaClienteController::class, 'store'])
     Route::post('/morosos/subir-excel', [MorososController::class, 'subirExcel'])
     ->middleware(['auth', 'verified'])
     ->name('morosos.subir-excel');
+    Route::post('/morosos/cartas-seleccionadas', [MorososController::class, 'generarPDFSeleccionados'])
+    ->name('morosos.cartas_seleccionadas');
 
     Route::get('/morosos/pdf', [MorososController::class, 'generarPDF']);
 
+    Route::post('/cartas/importar-excel', [CartasController::class, 'importarExcel'])
+        ->name('cartas.importar_excel');
+
+    Route::delete('/cartas/limpiar', [CartasController::class, 'limpiar'])
+        ->name('cartas.limpiar');
+        Route::post('/cartas/generar-pdf', [CartasController::class, 'generarPdf'])
+    ->name('cartas.generar_pdf');
 require __DIR__.'/auth.php';

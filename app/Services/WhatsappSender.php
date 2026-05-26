@@ -3,29 +3,21 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Throwable;
 
 class WhatsappSender
 {
-    /**
-     * @param  array<string,mixed>|null  $components
-     * @return array{ok:bool,status:?int,json:mixed,exception:?string}
-     */
-    public function sendTemplate(string $to, string $template, string $lang, ?array $components = null): array
+    protected string $token;
+    protected string $phoneNumberId;
+
+    public function __construct()
     {
-        $token = (string) config('services.whatsapp.token');
-        $phoneNumberId = (string) config('services.whatsapp.phone_number_id');
+        $this->token = config('services.whatsapp.token');
+        $this->phoneNumberId = config('services.whatsapp.phone_number_id');
+    }
 
-        if ($token === '' || $phoneNumberId === '' || $to === '') {
-            return [
-                'ok' => false,
-                'status' => null,
-                'json' => null,
-                'exception' => 'Faltan credenciales/config de WhatsApp.',
-            ];
-        }
-
-        $url = "https://graph.facebook.com/v25.0/{$phoneNumberId}/messages";
+    public function sendTemplate(string $to, string $template, string $lang = 'es_AR', ?array $params = null): array
+    {
+        $url = "https://graph.facebook.com/v20.0/{$this->phoneNumberId}/messages";
 
         $payload = [
             'messaging_product' => 'whatsapp',
@@ -33,36 +25,41 @@ class WhatsappSender
             'type' => 'template',
             'template' => [
                 'name' => $template,
-                'language' => ['code' => $lang],
+                'language' => [
+                    'code' => $lang,
+                ],
             ],
         ];
 
-        if (is_array($components) && $components !== []) {
-            $payload['template']['components'] = $components;
+        if (!empty($params)) {
+            $payload['template']['components'] = [
+                [
+                    'type' => 'body',
+                    'parameters' => array_map(function ($value) {
+                        return [
+                            'type' => 'text',
+                            'text' => (string) $value,
+                        ];
+                    }, $params),
+                ],
+            ];
         }
 
         try {
-            $http = Http::withToken($token)->acceptJson();
-
-            $caBundle = storage_path('cacert.pem');
-            if (is_file($caBundle)) {
-                $http = $http->withOptions([
-                    'verify' => $caBundle,
-                ]);
-            }
-
-            $resp = $http->asJson()->post($url, $payload);
+            $response = Http::withToken($this->token)
+                ->acceptJson()
+                ->post($url, $payload);
 
             return [
-                'ok' => $resp->successful(),
-                'status' => $resp->status(),
-                'json' => $resp->json(),
+                'ok' => $response->successful(),
+                'status' => $response->status(),
+                'json' => $response->json(),
                 'exception' => null,
             ];
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             return [
                 'ok' => false,
-                'status' => null,
+                'status' => 0,
                 'json' => null,
                 'exception' => $e->getMessage(),
             ];

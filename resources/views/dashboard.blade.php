@@ -13,7 +13,7 @@
             <div class="p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <div class="text-sm font-semibold text-slate-900">Ver morosos</div>
+                        <div class="text-sm font-semibold text-slate-900">Morosos</div>
                         <div class="mt-1 text-sm text-slate-600">
                             Filtra por estado y periodos de mora.
                         </div>
@@ -28,13 +28,13 @@
             </div>
         </a>
 
-        <a href="{{ route('profile.edit') }}" class="group bg-white rounded-2xl ring-1 ring-slate-200/70 shadow-sm hover:shadow-md transition overflow-hidden">
+        <a href="{{ route('demandado.index') }}" class="group bg-white rounded-2xl ring-1 ring-slate-200/70 shadow-sm hover:shadow-md transition overflow-hidden">
             <div class="p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <div class="text-sm font-semibold text-slate-900">Perfil</div>
+                        <div class="text-sm font-semibold text-slate-900">Demandados</div>
                         <div class="mt-1 text-sm text-slate-600">
-                            Datos personales y contraseña.
+                            Seguimiento demandados.
                         </div>
                     </div>
                     <div class="h-11 w-11 rounded-2xl bg-slate-50 ring-1 ring-slate-200/70 flex items-center justify-center">
@@ -43,7 +43,26 @@
                 </div>
             </div>
             <div class="px-6 py-3 bg-white border-t border-slate-100 text-sm font-semibold text-slate-700 group-hover:text-slate-900">
-                Abrir →
+                Ver demandados →
+            </div>
+        </a>
+
+        <a href="{{ route('cartas.index') }}" class="group bg-white rounded-2xl ring-1 ring-slate-200/70 shadow-sm hover:shadow-md transition overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-900">Cartas Documentadas</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            Generación de cartas por importación de excel
+                        </div>
+                    </div>
+                    <div class="h-11 w-11 rounded-2xl bg-slate-50 ring-1 ring-slate-200/70 flex items-center justify-center">
+                        <div class="h-2.5 w-2.5 rounded-full bg-slate-500"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-white border-t border-slate-100 text-sm font-semibold text-slate-700 group-hover:text-slate-900">
+                Generar Cartas →
             </div>
         </a>
     </div>

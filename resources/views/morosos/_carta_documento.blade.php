@@ -52,7 +52,7 @@
     }
 </style>
 
-@foreach($morosos as $index => $m)
+@foreach($clientes as $index => $m)
 
 <div class="carta">
 
@@ -66,17 +66,17 @@
     <div class="linea"></div>
 
     <div class="derecha">
-    {{ strtoupper($m->localidad) }}, {{ date('d') }} de {{ date('F') }} de {{ date('Y') }}
+    Aguilares, 22 de Mayo de 2026
     </div>
 
     <div style="font-weight: bold;">
         Señor/a:
         <span class="negrita subrayado">
-        @if($m->titular_garantia == 'TIT')
-                {{ strtoupper($m->nombre) }}
-            @else
-                {{ strtoupper($m->nombre) }} GARANTE DE: {{ strtoupper($m->nombre_titular ?? 'SIN TITULAR') }}
-            @endif
+                    @if($m->titular_garantia == 'TIT')
+                            {{ strtoupper($m->nombre) }}
+                        @else
+                            {{ strtoupper($m->nombre) }} GARANTE DE: {{ strtoupper($m->nombre_titular ?? 'SIN TITULAR') }}
+                    @endif
         </span>
     </div>
 

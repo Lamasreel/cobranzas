@@ -1,12 +1,21 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+
 <aside class="w-72 shrink-0 bg-white border-r border-slate-200 min-h-screen flex flex-col">
     <div class="px-4 py-5 border-b border-slate-200">
         <div class="flex items-center gap-3">
             <div class="h-10 w-10 rounded-xl bg-emerald-600 ring-1 ring-emerald-500 flex items-center justify-center shadow-sm">
-                <x-application-logo class="h-6 w-6 fill-current text-white" />
+                <i class="fa-solid fa-dollar-sign text-white text-lg"></i>
             </div>
+
             <div>
-                <div class="text-sm font-semibold text-slate-900 leading-tight">Cobranza</div>
-                <div class="text-xs text-slate-500">Panel</div>
+                <div class="text-sm font-semibold text-slate-900 leading-tight">
+                    Cobranza Premier
+                </div>
+
+                <div class="text-xs text-slate-500">
+                    Panel
+                </div>
             </div>
         </div>
     </div>
@@ -16,7 +25,7 @@
             href="{{ route('dashboard') }}"
             class="{{ request()->routeIs('dashboard') ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70' : 'text-slate-700 hover:bg-slate-50' }} flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition"
         >
-            <span class="h-2.5 w-2.5 rounded-full {{ request()->routeIs('dashboard') ? 'bg-emerald-600' : 'bg-slate-300' }}"></span>
+        <i class="fa-solid fa-house"></i>
             <span>Menú</span>
         </a>
 
@@ -24,8 +33,24 @@
             href="{{ route('morosos.index') }}"
             class="{{ request()->routeIs('morosos.*') ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70' : 'text-slate-700 hover:bg-slate-50' }} flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition"
         >
-            <span class="h-2.5 w-2.5 rounded-full {{ request()->routeIs('morosos.*') ? 'bg-emerald-600' : 'bg-slate-300' }}"></span>
-            <span>Ver morosos</span>
+        <i class="fa-solid fa-user"></i>
+            <span>Estado Morosos</span>
+        </a>
+
+        <a
+            href="{{ route('demandado.index') }}"
+            class="{{ request()->routeIs('demandado.*') ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70' : 'text-slate-700 hover:bg-slate-50' }} flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition"
+        >
+        <i class="fa-solid fa-eye"></i>
+            <span>Demandados</span>
+        </a>
+
+        <a
+            href="{{ route('cartas.index') }}"
+            class="{{ request()->routeIs('cartas.*') ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70' : 'text-slate-700 hover:bg-slate-50' }} flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition"
+        >
+        <i class="fa-solid fa-file"></i>
+            <span>Cartas</span>
         </a>
     </nav>
 

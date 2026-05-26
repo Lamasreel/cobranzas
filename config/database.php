@@ -63,6 +63,22 @@ return [
             ]) : [],
         ],
 
+        'mysql_local' => [
+            'driver' => 'mysql',
+            'host' => env('DB_LOCAL_HOST', '192.168.100.150'),
+            'port' => env('DB_LOCAL_PORT', '3310'),
+            'database' => env('DB_LOCAL_DATABASE', 'sqlpremier'),
+            'username' => env('DB_LOCAL_USERNAME', 'tarjetapremier'),
+            'password' => env('DB_LOCAL_PASSWORD', '3b0100f8'),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),

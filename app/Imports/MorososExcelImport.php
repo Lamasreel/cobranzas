@@ -2,20 +2,13 @@
 
 namespace App\Imports;
 
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\ToCollection;
+use Illuminate\Support\Collection;
 
-class MorososExcelImport implements WithMultipleSheets
+class MorososExcelImport implements ToCollection
 {
-    public function sheets(): array
+    public function collection(Collection $rows)
     {
-        return [
-            'Aguilares'  => new MorososSheetImport(),
-            'Concepcion' => new MorososSheetImport(),
-            'Alberdi'    => new MorososSheetImport(),
-            'LaCocha'   => new MorososSheetImport(),
-            'SantaAna'  => new MorososSheetImport(),
-            'Sarmientos'  => new MorososSheetImport(),
-            'Otros'  => new MorososSheetImport(),
-        ];
+        (new MorososSheetImport())->collection($rows);
     }
 }

@@ -10,12 +10,10 @@ class Kernel extends ConsoleKernel
     /**
      * Define the application's command schedule.
      */
-    protected function schedule(Schedule $schedule): void
+    protected function schedule(Schedule $schedule)
     {
-        $schedule->command('whatsapp:send-reminders')
-            ->everyMinute()
-            ->timezone(config('app.timezone'))
-            ->withoutOverlapping();
+        $schedule->command('app:enviar-avisos-mora')
+        ->monthlyOn(23, '10:29');
     }
 
     /**
