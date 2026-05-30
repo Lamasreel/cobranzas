@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappBotController extends Controller
 {
-    private string $connection = 'mysql_local';
+    private string $connection = 'mysql';
     private string $tabla = 'maectas2';
 
     public function verificar(Request $request)
@@ -108,7 +108,7 @@ class WhatsappBotController extends Controller
         $textoNormalizado = strtolower($texto);
         $textoLimpio = preg_replace('/\D/', '', $texto);
 
-        if (in_array($textoNormalizado, ['menu', 'menú', 'inicio', 'volver', 'principal'])) {
+        if (in_array($textoNormalizado, ['menu', 'menú', 'inicio', 'volver', 'principal', 'men'])) {
             if (!$conversacion->documento) {
                 $conversacion->update([
                     'estado_flujo' => 'esperando_dni',
@@ -208,10 +208,12 @@ class WhatsappBotController extends Controller
 
             return "💳 *Pago por transferencia*\n\n" .
                 "Podés cancelar tu deuda realizando una transferencia bancaria con estos datos:\n\n" .
-                "*Banco/Entidad:* Santander\n" .
-                "*CVU:* 123456789\n" .
-                "*Alias:* tarjeta.premier\n" .
-                "*Titular:* Luis Brodersen\n\n" .
+                "*PREMIER CARD TARJETA REGIONAL SA*\n" .
+                "*CUIT:* 30-70899027-9\n" .
+                "*BANCO MACRO SA SUCURSAL AGUILARES*\n" .
+                "*CUENTA CORRIENTE EN PESOS*\n" .
+                "N° 360100100014348\n" .
+                "*CBU* 2850601830001000143480 \n\n" .
                 "Una vez realizada la transferencia, respondé este mensaje con el comprobante 📎 para que podamos registrar tu pago.\n\n" .
                 "Para volver al menú principal escribí *menu*.";
         }

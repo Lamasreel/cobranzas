@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\WhatsappSender;
 use App\Support\WhatsappAutomationSettings;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -422,6 +423,148 @@ class MorososController extends Controller
         return response()->json([
             'ok' => true,
             'settings' => WhatsappAutomationSettings::read(),
+        ]);
+    
+    }
+    public function whatsappClientes(Request $request)
+    {
+        $q = trim((string) $request->get('q', ''));
+    
+        $sql = "
+            SELECT
+                m.DNI,
+                m.NOMBRE,
+                MAX(wm.created_at) AS ultimo_mensaje
+            FROM maectas2 m
+            INNER JOIN whatsapp_conversaciones wc
+                ON wc.documento = m.DNI
+            INNER JOIN whatsapp_mensajes wm
+                ON wm.cliente_id = wc.cliente_id
+            GROUP BY
+                m.DNI,
+                m.NOMBRE
+            ORDER BY ultimo_mensaje DESC
+            LIMIT 50
+        ";
+    
+        $clientes = DB::select($sql);
+        
+    
+        return response()->json([
+            'ok' => true,
+            'clientes' => $clientes,
+        ]);
+    }
+
+    
+public function generarMoratorias(Request $request)
+{
+    $ids = $request->input('ids', []);
+
+    if (empty($ids)) {
+        return back()->with('error', 'No seleccionaste ningún cliente.');
+    }
+
+    $clientes = DB::table('maectas2')
+        ->whereIn('id', $ids)
+        ->get();
+
+    if ($clientes->isEmpty()) {
+        return back()->with('error', 'No se encontraron clientes.');
+    }
+
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+
+    $pdf->SetCreator('Sistema Morosos');
+    $pdf->SetAuthor('Estudio de Cobranzas');
+    $pdf->SetTitle('Moratorias Tarjeta Premier');
+
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+
+    $pdf->SetMargins(8, 6, 8);
+    $pdf->SetAutoPageBreak(false, 0);
+    $pdf->SetFont('dejavusans', '', 10);
+
+    $firmaPath = public_path('assets/images/firma_abogado.png');
+
+    $clientesPorHoja = $clientes->chunk(2);
+
+    foreach ($clientesPorHoja as $grupo) {
+        $pdf->AddPage();
+
+        foreach ($grupo as $index => $cliente) {
+
+            $yBase = $index === 0 ? 8 : 150;
+
+            $html = view('morosos._carta_moratoria', [
+                'cliente' => $cliente,
+            ])->render();
+
+            $pdf->writeHTMLCell(
+                194,
+                135,
+                8,
+                $yBase,
+                $html,
+                0,
+                0,
+                false,
+                true,
+                '',
+                true
+            );
+
+            if (file_exists($firmaPath)) {
+                $pdf->Image(
+                    $firmaPath,
+                    148,
+                    $yBase + 108,
+                    38,
+                    0,
+                    'PNG'
+                );
+            }
+
+            if ($index === 0) {
+                $pdf->Line(8, 146, 202, 146);
+            }
+        }
+    }
+
+    return response($pdf->Output('moratorias_tarjeta_premier.pdf', 'S'))
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', 'inline; filename="moratorias_tarjeta_premier.pdf"');
+}    
+    public function whatsappConversacion($documento)
+    {
+        $sql = "
+            SELECT
+                wm.tipo AS direccion,
+                wm.mensaje,
+                wm.created_at
+            FROM whatsapp_conversaciones wc
+            INNER JOIN whatsapp_mensajes wm
+                ON wm.conversacion_id = wc.id
+            WHERE wc.documento = '{$documento}'
+            ORDER BY wm.created_at ASC
+        ";
+    
+        $rows = DB::select($sql);
+    
+        $mensajes = array_map(function ($m) {
+            return [
+                'direccion' => $m->direccion,
+                'mensaje' => $m->mensaje,
+                'fecha' => $m->created_at
+                    ? \Carbon\Carbon::parse($m->created_at)->format('d/m/Y H:i')
+                    : '',
+            ];
+        }, $rows);
+    
+        return response()->json([
+            'ok' => true,
+            'mensajes' => $mensajes,
         ]);
     }
 }

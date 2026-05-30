@@ -79,4 +79,17 @@ Route::post('/promesa_cliente', [PromesaClienteController::class, 'store'])
         ->name('cartas.limpiar');
         Route::post('/cartas/generar-pdf', [CartasController::class, 'generarPdf'])
     ->name('cartas.generar_pdf');
+
+    Route::get('/morosos/whatsapp/clientes', [MorososController::class, 'whatsappClientes'])
+    ->name('morosos.whatsapp.clientes');
+
+    Route::get('/morosos/whatsapp/conversacion/{documento}', [MorososController::class, 'whatsappConversacion'])
+    ->name('morosos.whatsapp.conversacion');
+
+    Route::get('/cartas/moratoria', [CartasController::class, 'moratoria'])
+    ->name('cartas.moratoria');
+
+Route::post('/cartas/moratoria/generar-pdf', [CartasController::class, 'generarPdfMoratoria'])
+    ->name('cartas.moratoria.generar_pdf');
+    
 require __DIR__.'/auth.php';
