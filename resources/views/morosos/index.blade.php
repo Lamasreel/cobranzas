@@ -223,17 +223,15 @@
                             <th class="py-2 px-2 border whitespace-nowrap">Empleador</th>
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Días</th>
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Deuda</th>
-                            <th class="py-2 px-2 border text-right whitespace-nowrap">Cap. Prest.</th>
-                            <th class="py-2 px-2 border text-right whitespace-nowrap">Pagado</th>
-                            <th class="py-2 px-2 border text-right whitespace-nowrap">Saldo Vencido</th>
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Int. Pun.</th>
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Saldo Total</th>
-                            <th class="py-2 px-2 border text-right whitespace-nowrap">Saldo Sin Pun.</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">Estado</th>
-                            <th class="py-2 px-2 border text-center whitespace-nowrap">Sacar</th>
-                            <th class="py-2 px-2 border whitespace-nowrap">Cónyuge</th>
-                            <th class="py-2 px-2 border whitespace-nowrap">Garante 1</th>
-                            <th class="py-2 px-2 border whitespace-nowrap">Garante 2</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">WSP</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">TIENE_WSP</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">SMS</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">LLAMADA</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">TIENE_TEL</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">CARTA</th>
                         </tr>
                     </thead>
 
@@ -314,7 +312,7 @@
                                 </td>
 
                                 <td class="py-1.5 px-2 border">{{ $loop->iteration }}</td>
-                                <td class="py-1.5 px-2 border whitespace-nowrap" id="dni-{{ $m->id }}">{{ $m->documento }}</td>
+                                <td class="py-1.5 px-2 border whitespace-nowrap" id="dni-{{ $m->id }}">{{ $m->dnitit }}</td>
                                 <td class="py-1.5 px-2 border font-medium min-w-[180px] text-left">{{ $m->nombre }}</td>
                                 <td class="py-1.5 px-2 border font-medium min-w-[180px] break-words text-left">{{ $m->calle }}</td>
                                 <td class="py-1.5 px-2 border whitespace-nowrap">{{ $m->localidad }}</td>
@@ -339,18 +337,20 @@
                                 <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->dias }}</td>
 
                                 <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->deuda, 0, ',', '.') }}</td>
-                                <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->capital_prestado, 0, ',', '.') }}</td>
-                                <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->pagado, 0, ',', '.') }}</td>
-                                <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->saldo_vencido, 0, ',', '.') }}</td>
-                                <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->interes_punitorio, 0, ',', '.') }}</td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">${{ number_format((float) $m->saldo_total, 0, ',', '.') }}</td>
-                                <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->saldo_sin_punitorio, 0, ',', '.') }}</td>
+                                <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->int_pun, 0, ',', '.') }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">${{ number_format((float) $m->sal_tot, 0, ',', '.') }}</td>
 
                                 <td class="py-1.5 px-2 border text-center">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-medium {{ $badge }}">
                                         {{ $m->estado ?: 'Sin estado' }}
                                     </span>
                                 </td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->wsp }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->tiene_wsp }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->sms }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->llamada }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->tiene_tel }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->carta }}</td>
 
                                 <td class="py-1.5 px-2 border text-center">
                                     @if((int) ($m->sacar ?? 0) === 1)
@@ -358,23 +358,6 @@
                                     @else
                                         <span class="text-slate-400">-</span>
                                     @endif
-                                </td>
-
-                                <td class="py-1.5 px-2 border text-left min-w-[180px]">
-                                    <div class="font-semibold">{{ $m->nombre_conyuge ?: '-' }}</div>
-                                    <div class="text-[11px] text-slate-500">DNI: {{ $m->documento_conyuge ?: '-' }}</div>
-                                </td>
-
-                                <td class="py-1.5 px-2 border text-left min-w-[220px]">
-                                    <div class="font-semibold">{{ $m->nombre_garante_1 ?: '-' }}</div>
-                                    <div class="text-[11px] text-slate-500">DNI: {{ $m->documento_garante_1 ?: '-' }}</div>
-                                    <div class="text-[11px] text-slate-500">{{ $m->domicilio_garante_1 ?: '' }} {{ $m->localidad_garante_1 ?: '' }}</div>
-                                </td>
-
-                                <td class="py-1.5 px-2 border text-left min-w-[220px]">
-                                    <div class="font-semibold">{{ $m->nombre_garante_2 ?: '-' }}</div>
-                                    <div class="text-[11px] text-slate-500">DNI: {{ $m->documento_garante_2 ?: '-' }}</div>
-                                    <div class="text-[11px] text-slate-500">{{ $m->domicilio_garante_2 ?: '' }} {{ $m->localidad_garante_2 ?: '' }}</div>
                                 </td>
                             </tr>
                         @empty
@@ -583,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(document.getElementById('graficoMontos'), {
             type: 'doughnut',
             data: {
-                labels: ['Pagados', 'Promesa', 'Pendientes'],
+                labels: ['Bloqueado', 'Fallecido', 'Normal', 'Afectado - Bloqueado'],
                 datasets: [{
                     data: [totales.pagados || 0, totales.promesa || 0, totales.pendiente || 0],
                     backgroundColor: [colores.pagado, colores.promesa, colores.pendiente]

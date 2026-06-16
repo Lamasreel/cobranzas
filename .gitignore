@@ -22,3 +22,14 @@ public/hot
 !.dev.vars.example
 !.env.example
 .env
+
+
+# Primero commit cualquier cambio de código pendiente y, luego, ejecuta este comando:
+
+# git rm -r --cached .
+# Esto elimina cualquier archivo modificado del índice (área de preparación), y luego simplemente ejecuta:
+
+# git add .
+# Compromételo:
+
+# git commit -m ".gitignore is now working"
