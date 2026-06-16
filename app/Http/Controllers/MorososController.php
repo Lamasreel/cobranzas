@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\WhatsappSender;
 use App\Support\WhatsappAutomationSettings;
 use Carbon\Carbon;
+use TCPDF;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
