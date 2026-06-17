@@ -25,7 +25,7 @@ class EnviarAvisosMoraWhatsapp extends Command
 
         return self::SUCCESS;
     }
-
+ 
     private function enviarPorRango(int $desde, int $hasta, string $template, string $campoFecha): void
     {
         $sql = "
