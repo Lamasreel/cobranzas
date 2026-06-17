@@ -28,45 +28,63 @@ class EnviarAvisosMoraWhatsapp extends Command
 
     private function enviarPorRango(int $desde, int $hasta, string $template, string $campoFecha): void
     {
-        $clientes = DB::table('maectas2')
-            ->whereBetween('DIAS', [$desde, $hasta])
-            ->whereNotNull('TEL_MOVIL')
-            ->limit(1) // prueba segura
-            ->get();
-
+        $sql = "
+            SELECT *
+            FROM morosos
+            WHERE DIAS BETWEEN ? AND ?
+              AND {$campoFecha} IS NULL
+              AND ORDEN = 1
+              AND (
+                    COALESCE(TEL_MOVIL1, '') <> ''
+                 OR COALESCE(TEL_MOVIL2, '') <> ''
+                 OR COALESCE(TEL_MOVIL3, '') <> ''
+                 OR COALESCE(TEL_ALTER1, '') <> ''
+                 OR COALESCE(TEL_ALTER2, '') <> ''
+              )
+            LIMIT 1
+        ";
+    
+        $clientes = collect(DB::select($sql, [$desde, $hasta]));
+    
         $this->info("Template {$template}: {$clientes->count()} clientes encontrados.");
-
+    
         foreach ($clientes as $cliente) {
-            $telefono = $this->normalizarTelefono($cliente->TEL_MOVIL);
-
+            $telefono = $this->obtenerTelefonoCliente($cliente);
+    
             if (!$telefono) {
-                $this->warn("Cliente {$cliente->id} sin teléfono válido.");
+                $this->warn("Cliente DNI {$cliente->DNI} sin teléfono válido.");
                 continue;
             }
-
+    
             $response = $this->enviarTemplate($telefono, $template, $cliente);
-
+    
             if ($response['status'] >= 200 && $response['status'] < 300) {
-                DB::table('cliente')
-                    ->where('id', $cliente->id)
-                    ->update([
-                        $campoFecha => now(),
-                        'ultimo_wsp_at' => now(),
-                    ]);
+                DB::update("
+                    UPDATE morosos
+                    SET {$campoFecha} = NOW(),
+                        ultimo_wsp_at = NOW(),
+                        WSP = 'SI',
+                        TIENE_WSP = 'SI'
+                    WHERE ORDEN = ?
+                      AND DNI = ?
+                ", [
+                    $cliente->ORDEN,
+                    $cliente->DNI,
+                ]);
             } else {
-                $this->error("No se marcó como enviado el cliente {$cliente->id} porque Meta respondió {$response['status']}");
+                $this->error("No se marcó como enviado el DNI {$cliente->DNI}. Meta respondió {$response['status']}");
             }
-
+    
             Log::info('Aviso automático WhatsApp', [
-                'cliente_id' => $cliente->id,
-                'documento' => $cliente->documento ?? null,
+                'orden' => $cliente->ORDEN,
+                'dni' => $cliente->DNI,
                 'telefono' => $telefono,
                 'template' => $template,
                 'status' => $response['status'],
                 'body' => $response['body'],
             ]);
-
-            $this->info("Cliente {$cliente->id} enviado. Status: {$response['status']}");
+    
+            $this->info("Cliente DNI {$cliente->DNI} enviado. Status: {$response['status']}");
         }
     }
 
@@ -76,11 +94,10 @@ class EnviarAvisosMoraWhatsapp extends Command
         $phoneNumberId = config('services.whatsapp.phone_number_id');
         $token = config('services.whatsapp.token');
 
-        $nombre = $cliente->nombre ?? 'cliente';
+        $nombre = $cliente->NOMBRE ?? 'cliente';
         $fecha = now()->format('d/m/Y');
-        $deuda = number_format($cliente->saldo_total ?? 0, 0, ',', '.');
-        $dias = (string)($cliente->dias ?? 0);
-
+        $deuda = number_format($cliente->SAL_TOT ?? 0, 0, ',', '.');
+        $dias = (string)($cliente->DIAS ?? 0);
         $parameters = [];
 
         if ($template === 'primer_aviso_mora') {
@@ -165,4 +182,25 @@ class EnviarAvisosMoraWhatsapp extends Command
 
         return $telefono;
     }
+
+    private function obtenerTelefonoCliente($cliente): ?string
+{
+    $telefonos = [
+        $cliente->TEL_MOVIL1 ?? null,
+        $cliente->TEL_MOVIL2 ?? null,
+        $cliente->TEL_MOVIL3 ?? null,
+        $cliente->TEL_ALTER1 ?? null,
+        $cliente->TEL_ALTER2 ?? null,
+    ];
+
+    foreach ($telefonos as $telefono) {
+        $normalizado = $this->normalizarTelefono($telefono);
+
+        if ($normalizado) {
+            return $normalizado;
+        }
+    }
+
+    return null;
+}
 }
