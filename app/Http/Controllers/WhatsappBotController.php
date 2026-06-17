@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappBotController extends Controller
 {
-    private string $connection = 'mysql';
-    private string $tabla = 'maectas2';
+    private string $connection = 'mysql_local';
+    private string $tabla = 'morosos';
 
     public function verificar(Request $request)
     {
@@ -149,7 +149,7 @@ class WhatsappBotController extends Controller
 
             $conversacion->update([
                 'documento' => $cliente->DNI,
-                'cliente_id' => $cliente->id,
+                'cliente_id' => $cliente->DNI,
                 'estado_flujo' => 'esperando_opcion',
             ]);
 
@@ -245,7 +245,12 @@ class WhatsappBotController extends Controller
 
     private function buscarClientePorDocumento(string $documento)
     {
-        $sql = "SELECT * FROM {$this->tabla} WHERE DNI = ? LIMIT 1";
+        $sql = "
+            SELECT *
+            FROM {$this->tabla}
+            WHERE DNI = ?
+            LIMIT 1
+        ";
 
         return DB::connection($this->connection)->selectOne($sql, [$documento]);
     }
