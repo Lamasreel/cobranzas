@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 
 class EnviarAvisosMoraWhatsapp extends Command
 {
+    private string $connection = 'mysql_local';
+    private string $tabla = 'morosos';
     protected $signature = 'app:enviar-avisos-mora-whatsapp';
 
     protected $description = 'Envía avisos automáticos de mora por WhatsApp';
@@ -30,7 +32,7 @@ class EnviarAvisosMoraWhatsapp extends Command
     {
         $sql = "
             SELECT *
-            FROM morosos
+            FROM {$this->tabla}
             WHERE DIAS BETWEEN ? AND ?
               AND {$campoFecha} IS NULL
               AND ORDEN = 1
@@ -44,7 +46,9 @@ class EnviarAvisosMoraWhatsapp extends Command
             LIMIT 1
         ";
     
-        $clientes = collect(DB::select($sql, [$desde, $hasta]));
+        $clientes = collect(
+            DB::connection($this->connection)->select($sql, [$desde, $hasta])
+        );
     
         $this->info("Template {$template}: {$clientes->count()} clientes encontrados.");
     
@@ -59,8 +63,8 @@ class EnviarAvisosMoraWhatsapp extends Command
             $response = $this->enviarTemplate($telefono, $template, $cliente);
     
             if ($response['status'] >= 200 && $response['status'] < 300) {
-                DB::update("
-                    UPDATE morosos
+                DB::connection($this->connection)->update("
+                    UPDATE {$this->tabla}
                     SET {$campoFecha} = NOW(),
                         ultimo_wsp_at = NOW(),
                         WSP = 'SI',
