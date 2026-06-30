@@ -431,29 +431,104 @@ class MorososController extends Controller
     {
         $q = trim((string) $request->get('q', ''));
     
-        $sql = "
+        $sqlWhatsapp = "
             SELECT
-                m.DNI,
-                m.NOMBRE,
+                wc.documento,
                 MAX(wm.created_at) AS ultimo_mensaje
-            FROM maectas2 m
-            INNER JOIN whatsapp_conversaciones wc
-                ON wc.documento = m.DNI
+            FROM whatsapp_conversaciones wc
             INNER JOIN whatsapp_mensajes wm
                 ON wm.cliente_id = wc.cliente_id
-            GROUP BY
-                m.DNI,
-                m.NOMBRE
+            WHERE wc.documento IS NOT NULL
+              AND wc.documento <> ''
+            GROUP BY wc.documento
             ORDER BY ultimo_mensaje DESC
             LIMIT 50
         ";
     
-        $clientes = DB::select($sql);
-        
+        $mensajes = DB::connection('mysql')->select($sqlWhatsapp);
+    
+        if (empty($mensajes)) {
+            return response()->json([
+                'ok' => true,
+                'clientes' => [],
+            ]);
+        }
+    
+        $dnis = [];
+    
+        foreach ($mensajes as $m) {
+            $dnis[] = "'" . addslashes($m->documento) . "'";
+        }
+    
+        $sqlMorosos = "
+            SELECT
+                DNITIT,
+                NOMBRE
+            FROM morosos
+            WHERE DNITIT IN (" . implode(',', $dnis) . ")
+        ";
+    
+        $morosos = DB::connection($this->connection)->select($sqlMorosos);
+    
+        $morososIndexados = [];
+    
+        foreach ($morosos as $m) {
+            $morososIndexados[(string)$m->DNITIT] = $m;
+        }
+    
+        $clientes = [];
+    
+        foreach ($mensajes as $m) {
+    
+            $nombre = 'Sin datos';
+    
+            if (isset($morososIndexados[(string)$m->documento])) {
+                $nombre = $morososIndexados[(string)$m->documento]->NOMBRE;
+            }
+    
+            $clientes[] = [
+                'DNI' => $m->documento,
+                'NOMBRE' => $nombre,
+                'ultimo_mensaje' => $m->ultimo_mensaje,
+            ];
+        }
     
         return response()->json([
             'ok' => true,
             'clientes' => $clientes,
+        ]);
+    }
+    public function whatsappConversacion($documento)
+    {
+        $sql = "
+            SELECT
+                wm.tipo AS direccion,
+                wm.mensaje,
+                wm.created_at
+            FROM whatsapp_conversaciones wc
+            INNER JOIN whatsapp_mensajes wm
+                ON wm.conversacion_id = wc.id
+            WHERE wc.documento = ?
+            ORDER BY wm.created_at ASC
+        ";
+    
+        $rows = DB::connection('mysql')->select($sql, [$documento]);
+    
+        $mensajes = [];
+    
+        foreach ($rows as $m) {
+            $mensajes[] = [
+                'direccion' => $m->direccion,
+                'mensaje' => $m->mensaje,
+                'fecha' => $m->created_at
+                    ? Carbon::parse($m->created_at)->format('d/m/Y H:i')
+                    : '',
+            ];
+        }
+    
+        return response()->json([
+            'ok' => true,
+            'mensajes' => $mensajes,
         ]);
     }
 
@@ -537,35 +612,4 @@ public function generarMoratorias(Request $request)
         ->header('Content-Type', 'application/pdf')
         ->header('Content-Disposition', 'inline; filename="moratorias_tarjeta_premier.pdf"');
 }    
-    public function whatsappConversacion($documento)
-    {
-        $sql = "
-            SELECT
-                wm.tipo AS direccion,
-                wm.mensaje,
-                wm.created_at
-            FROM whatsapp_conversaciones wc
-            INNER JOIN whatsapp_mensajes wm
-                ON wm.conversacion_id = wc.id
-            WHERE wc.documento = '{$documento}'
-            ORDER BY wm.created_at ASC
-        ";
-    
-        $rows = DB::select($sql);
-    
-        $mensajes = array_map(function ($m) {
-            return [
-                'direccion' => $m->direccion,
-                'mensaje' => $m->mensaje,
-                'fecha' => $m->created_at
-                    ? \Carbon\Carbon::parse($m->created_at)->format('d/m/Y H:i')
-                    : '',
-            ];
-        }, $rows);
-    
-        return response()->json([
-            'ok' => true,
-            'mensajes' => $mensajes,
-        ]);
-    }
 }

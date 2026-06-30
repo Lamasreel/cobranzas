@@ -13,7 +13,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('app:enviar-avisos-mora')
-        ->monthlyOn(23, '10:29');
+        ->monthlyOn(13, '10:29');
     }
 
     /**
