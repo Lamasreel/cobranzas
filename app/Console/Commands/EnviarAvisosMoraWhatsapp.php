@@ -53,7 +53,7 @@ class EnviarAvisosMoraWhatsapp extends Command
         $this->info("Template {$template}: {$clientes->count()} clientes encontrados.");
     
         foreach ($clientes as $cliente) {
-            $telefono = $this->obtenerTelefonoCliente($cliente);
+            $telefono =  '5493865250447'; // $this->obtenerTelefonoCliente($cliente);
     
             if (!$telefono) {
                 $this->warn("Cliente DNI {$cliente->DNI} sin teléfono válido.");
