@@ -34,8 +34,6 @@ class EnviarAvisosMoraWhatsapp extends Command
             SELECT *
             FROM {$this->tabla}
             WHERE DIAS BETWEEN ? AND ?
-              AND {$campoFecha} IS NULL
-              AND ORDEN = 1
               AND (
                     COALESCE(TEL_MOVIL1, '') <> ''
                  OR COALESCE(TEL_MOVIL2, '') <> ''

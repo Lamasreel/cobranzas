@@ -310,7 +310,7 @@ class MorososController extends Controller
 
     public function politicaPrivacidad()
     {
-        return view('morosos.politica-privacidad');
+        return view('morosos.politica_privacidad');
     }
     public function marcarPagadosMasivo(Request $request)
     {
@@ -429,37 +429,106 @@ class MorososController extends Controller
             'ok' => true,
             'settings' => WhatsappAutomationSettings::read(),
         ]);
-    
     }
-    public function whatsappClientes(Request $request)
-    {
-        $q = trim((string) $request->get('q', ''));
-    
-        $sql = "
-            SELECT
-                m.DNI,
-                m.NOMBRE,
-                MAX(wm.created_at) AS ultimo_mensaje
-            FROM maectas2 m
-            INNER JOIN whatsapp_conversaciones wc
-                ON wc.documento = m.DNI
-            INNER JOIN whatsapp_mensajes wm
-                ON wm.cliente_id = wc.cliente_id
-            GROUP BY
-                m.DNI,
-                m.NOMBRE
-            ORDER BY ultimo_mensaje DESC
-            LIMIT 50
-        ";
-    
-        $clientes = DB::select($sql);
-        
-    
+
+public function whatsappClientes(Request $request)
+{
+    $q = trim((string) $request->get('q', ''));
+
+    // 1) Buscar clientes en la base MOROSOS
+    $clientesMorosos = DB::connection('mysql_local')->select("
+        SELECT
+            DNITIT AS DNI,
+            NOMBRE
+        FROM morosos
+        WHERE 
+            (? = '' 
+            OR DNITIT LIKE CONCAT('%', ?, '%')
+            OR NOMBRE LIKE CONCAT('%', ?, '%'))
+        LIMIT 50
+    ", [
+        $q,
+        $q,
+        $q
+    ]);
+
+
+    if (empty($clientesMorosos)) {
         return response()->json([
             'ok' => true,
-            'clientes' => $clientes,
+            'clientes' => []
         ]);
     }
+
+
+    // Obtener DNI encontrados
+    $dnis = array_map(function ($cliente) {
+        return $cliente->DNI;
+    }, $clientesMorosos);
+
+
+    // Crear placeholders (?, ?, ?)
+    $placeholders = implode(',', array_fill(0, count($dnis), '?'));
+
+
+    // 2) Buscar conversaciones en la base WhatsApp
+    $conversaciones = DB::connection('mysql')->select("
+        SELECT
+            wc.documento,
+            wc.id AS conversacion_id,
+            MAX(wm.created_at) AS ultimo_mensaje
+        FROM whatsapp_conversaciones wc
+
+        LEFT JOIN whatsapp_mensajes wm
+            ON wm.conversacion_id = wc.id
+
+        WHERE wc.documento IN ($placeholders)
+
+        GROUP BY 
+            wc.documento,
+            wc.id
+
+    ", $dnis);
+
+
+
+    // Indexar conversaciones por DNI
+    $datosWhatsapp = [];
+
+    foreach ($conversaciones as $conv) {
+        $datosWhatsapp[$conv->documento] = [
+            'conversacion_id' => $conv->conversacion_id,
+            'ultimo_mensaje' => $conv->ultimo_mensaje
+        ];
+    }
+
+
+
+    // 3) Unir los datos
+    $resultado = [];
+
+    foreach ($clientesMorosos as $cliente) {
+
+        $resultado[] = [
+            'DNI' => $cliente->DNI,
+            'NOMBRE' => $cliente->NOMBRE,
+
+            'conversacion' =>
+                $datosWhatsapp[$cliente->DNI]['conversacion_id'] ?? null,
+
+            'ultimo_mensaje' =>
+                $datosWhatsapp[$cliente->DNI]['ultimo_mensaje'] ?? null,
+        ];
+    }
+
+
+    return response()->json([
+        'ok' => true,
+        'clientes' => $resultado
+    ]);
+}
+
+         
 
     
 public function generarMoratorias(Request $request)
@@ -543,8 +612,7 @@ public function generarMoratorias(Request $request)
 }    
     public function whatsappConversacion($documento)
     {
-        $sql = "
-            SELECT
+        $sql = "            SELECT
                 wm.tipo AS direccion,
                 wm.mensaje,
                 wm.created_at

@@ -36,7 +36,7 @@ Route::get('/cartas', [CartasController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('cartas.index');
 
-    Route::get('/morosos/politica-privacidad', [MorososController::class, 'politicaPrivacidad']);
+    Route::get('/morosos/politica_privacidad', [MorososController::class, 'politicaPrivacidad']);
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/morosos/whatsapp-auto', [MorososController::class, 'whatsappAutomationShow'])

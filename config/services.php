@@ -34,12 +34,12 @@ return [
     'whatsapp' => [
         'token' => env('WHATSAPP_ACCESS_TOKEN'),
         // De tu ejemplo de cURL: /v25.0/{phone_number_id}/messages
-        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID', '1069808222884117'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID', '1170618752809686'),
         // Número de prueba (sin +)
         'to' => env('WHATSAPP_TEST_TO', '5493865250447'),
-        'template' => env('WHATSAPP_TEMPLATE', 'primer_aviso_mora'),
+        'template' => env('WHATSAPP_TEMPLATE', 'WHATSAPP_VERIFY_TOKEN'),
         'lang' => env('WHATSAPP_TEMPLATE_LANG', 'es_ARG'),
-        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+        'verify_token' => env('premier_webhook_2026'),
         'version' => env('WHATSAPP_API_VERSION', 'v23.0'),
         // Recordatorios automáticos (Scheduler)
         'auto_enabled' => env('WHATSAPP_AUTO_ENABLED', false),
