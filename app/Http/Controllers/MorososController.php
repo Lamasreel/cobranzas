@@ -308,6 +308,12 @@ class MorososController extends Controller
         return back();
     }
 
+    public function politicaPrivacidad()
+    {
+
+        return view('morosos.politica-privacidad');
+    }
+
     public function marcarPagadosMasivo(Request $request)
     {
         $data = $request->validate([
