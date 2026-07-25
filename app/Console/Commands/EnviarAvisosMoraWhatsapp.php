@@ -19,9 +19,9 @@ class EnviarAvisosMoraWhatsapp extends Command
     {
         $this->info('Iniciando envío automático de avisos...');
 
-        $this->enviarPorRango(30, 60, 'primer_aviso_mora', 'wsp_primer_aviso_at');
-        $this->enviarPorRango(60, 90, 'segundo_aviso_mora', 'wsp_segundo_aviso_at');
-        $this->enviarPorRango(90, 120, 'aviso_prejudicial_mora', 'wsp_prejudicial_at');
+        $this->enviarPorRango(30, 59, 'primer_aviso_mora', 'wsp_primer_aviso_at');
+        $this->enviarPorRango(60, 74, 'segundo_aviso_mora', 'wsp_segundo_aviso_at');
+        $this->enviarPorRango(75, 79, 'aviso_prejudicial_mora', 'wsp_prejudicial_at');
 
         $this->info('Proceso finalizado.');
 
@@ -31,18 +31,18 @@ class EnviarAvisosMoraWhatsapp extends Command
     private function enviarPorRango(int $desde, int $hasta, string $template, string $campoFecha): void
     {
         $sql = "
-            SELECT *
-            FROM {$this->tabla}
-            WHERE DIAS BETWEEN ? AND ?
-              AND (
-                    COALESCE(TEL_MOVIL1, '') <> ''
-                 OR COALESCE(TEL_MOVIL2, '') <> ''
-                 OR COALESCE(TEL_MOVIL3, '') <> ''
-                 OR COALESCE(TEL_ALTER1, '') <> ''
-                 OR COALESCE(TEL_ALTER2, '') <> ''
-              )
-            LIMIT 1
-        ";
+        SELECT *
+        FROM {$this->tabla}
+        WHERE DIAS BETWEEN ? AND ?
+          AND {$campoFecha} IS NULL
+          AND (
+                COALESCE(TEL_MOVIL1, '') <> ''
+             OR COALESCE(TEL_MOVIL2, '') <> ''
+             OR COALESCE(TEL_MOVIL3, '') <> ''
+             OR COALESCE(TEL_ALTER1, '') <> ''
+             OR COALESCE(TEL_ALTER2, '') <> ''
+          )
+    ";
     
         $clientes = collect(
             DB::connection($this->connection)->select($sql, [$desde, $hasta])
@@ -51,7 +51,7 @@ class EnviarAvisosMoraWhatsapp extends Command
         $this->info("Template {$template}: {$clientes->count()} clientes encontrados.");
     
         foreach ($clientes as $cliente) {
-            $telefono =  '5493865250447'; // $this->obtenerTelefonoCliente($cliente);
+            $telefono =  $this->obtenerTelefonoCliente($cliente);; // $this->obtenerTelefonoCliente($cliente); 5493865250447
     
             if (!$telefono) {
                 $this->warn("Cliente DNI {$cliente->DNI} sin teléfono válido.");
@@ -114,7 +114,6 @@ class EnviarAvisosMoraWhatsapp extends Command
             $parameters = [
                 ['type' => 'text', 'text' => $nombre],
                 ['type' => 'text', 'text' => $deuda],
-                ['type' => 'text', 'text' => '96'],
             ];
         }
 
@@ -126,13 +125,7 @@ class EnviarAvisosMoraWhatsapp extends Command
             ];
         }
 
-        $idioma = '';
-
-        if ($template === 'segundo_aviso_mora'){
-            $idioma = 'en';
-        } else {
-            $idioma = 'es_AR';
-        }
+        $idioma = 'es_AR';
 
 
         $response = Http::withToken($token)->post(
