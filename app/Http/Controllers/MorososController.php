@@ -478,7 +478,7 @@ class MorososController extends Controller
         $morosos = [];
 
         foreach ($clientes as $c) {
-            $morosos[$c->DNITIT] = $c;
+            $morosos[$c->DNI] = $c;
         }
         // ======================================
         // 5. Unir resultados
