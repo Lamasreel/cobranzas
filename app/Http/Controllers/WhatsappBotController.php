@@ -225,7 +225,7 @@ class WhatsappBotController extends Controller
 
             return "🤝 *Opciones de refinanciación*\n\n" .
                 "Entendido. Vamos a derivar tu caso para que un asesor de *Tarjeta Premier* revise las opciones disponibles para tu cuenta.\n\n" .
-                "También podés comunicarte al *3865250447* en horario de atención de *8:30 a 12:30 hs*.\n\n" .
+                "También podés comunicarte al *3865318802* en horario de atención de *8:30 a 12:30 hs*.\n\n" .
                 "Para volver al menú principal escribí *menu*.";
         }
 
