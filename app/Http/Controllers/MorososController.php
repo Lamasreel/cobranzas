@@ -466,10 +466,10 @@ class MorososController extends Controller
 
         $clientes = DB::connection('mysql_local')->select("
             SELECT
-                DNITIT,
+                DNI,
                 NOMBRE
             FROM morosos
-            WHERE DNITIT IN ($placeholders)
+            WHERE DNI IN ($placeholders)
         ", $dnis);
         // ======================================
         // 4. Indexar conversaciones por DNI
