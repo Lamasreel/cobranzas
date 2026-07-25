@@ -15,7 +15,7 @@ yarn-error.log
 /.vscode
 public/hot
 .env
-
+app/Providers/AppServiceProvider.php
 # wrangler files
 .wrangler
 .dev.vars*

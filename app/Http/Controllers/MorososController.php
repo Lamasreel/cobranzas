@@ -430,105 +430,85 @@ class MorososController extends Controller
             'settings' => WhatsappAutomationSettings::read(),
         ]);
     }
-
-public function whatsappClientes(Request $request)
-{
-    $q = trim((string) $request->get('q', ''));
-
-    // 1) Buscar clientes en la base MOROSOS
-    $clientesMorosos = DB::connection('mysql_local')->select("
+    public function whatsappClientes(Request $request)
+    {
+        $q = trim((string) $request->get('q', ''));
+        $conversaciones = DB::connection('mysql')->select("
         SELECT
-            DNITIT AS DNI,
-            NOMBRE
-        FROM morosos
-        WHERE 
-            (? = '' 
-            OR DNITIT LIKE CONCAT('%', ?, '%')
-            OR NOMBRE LIKE CONCAT('%', ?, '%'))
-        LIMIT 50
-    ", [
-        $q,
-        $q,
-        $q
-    ]);
-
-
-    if (empty($clientesMorosos)) {
-        return response()->json([
-            'ok' => true,
-            'clientes' => []
-        ]);
-    }
-
-
-    // Obtener DNI encontrados
-    $dnis = array_map(function ($cliente) {
-        return $cliente->DNI;
-    }, $clientesMorosos);
-
-
-    // Crear placeholders (?, ?, ?)
-    $placeholders = implode(',', array_fill(0, count($dnis), '?'));
-
-
-    // 2) Buscar conversaciones en la base WhatsApp
-    $conversaciones = DB::connection('mysql')->select("
-        SELECT
+            wc.id,
             wc.documento,
-            wc.id AS conversacion_id,
             MAX(wm.created_at) AS ultimo_mensaje
         FROM whatsapp_conversaciones wc
-
+    
         LEFT JOIN whatsapp_mensajes wm
             ON wm.conversacion_id = wc.id
+    
+        GROUP BY
+            wc.id,
+            wc.documento
+    
+        ORDER BY ultimo_mensaje DESC
+    ");
+    
+        // ======================================
+        // 2. Obtener los DNI
+        // ======================================
+    
+        $dnis = collect($conversaciones)
+        ->pluck('documento')
+        ->filter()
+        ->unique()
+        ->values()
+        ->toArray();
+    
+        $placeholders = implode(',', array_fill(0, count($dnis), '?'));
+        $placeholders = implode(',', array_fill(0, count($dnis), '?'));
 
-        WHERE wc.documento IN ($placeholders)
+        $clientes = DB::connection('mysql_local')->select("
+            SELECT
+                DNITIT,
+                NOMBRE
+            FROM morosos
+            WHERE DNITIT IN ($placeholders)
+        ", $dnis);
+        // ======================================
+        // 4. Indexar conversaciones por DNI
+        // ======================================
+    
+        $morosos = [];
 
-        GROUP BY 
-            wc.documento,
-            wc.id
+        foreach ($clientes as $c) {
+            $morosos[$c->DNITIT] = $c;
+        }
+        // ======================================
+        // 5. Unir resultados
+        // ======================================
+    
+        $resultado = [];
 
-    ", $dnis);
-
-
-
-    // Indexar conversaciones por DNI
-    $datosWhatsapp = [];
-
-    foreach ($conversaciones as $conv) {
-        $datosWhatsapp[$conv->documento] = [
-            'conversacion_id' => $conv->conversacion_id,
-            'ultimo_mensaje' => $conv->ultimo_mensaje
-        ];
+        foreach ($conversaciones as $conv) {
+        
+            $cliente = $morosos[$conv->documento] ?? null;
+        
+            $resultado[] = [
+                'conversacion_id' => $conv->id,
+                'DNI'             => $conv->documento,
+                'NOMBRE'          => $cliente->NOMBRE ?? '(Sin cliente)',
+                'ultimo_mensaje'  => $conv->ultimo_mensaje,
+            ];
+        }
+    
+        // Ordenar por último mensaje descendente
+        usort($resultado, function ($a, $b) {
+            return strtotime($b['ultimo_mensaje'] ?? '1900-01-01')
+                <=> strtotime($a['ultimo_mensaje'] ?? '1900-01-01');
+        });
+    
+        return response()->json([
+            'ok' => true,
+            'clientes' => $resultado
+        ]);
     }
-
-
-
-    // 3) Unir los datos
-    $resultado = [];
-
-    foreach ($clientesMorosos as $cliente) {
-
-        $resultado[] = [
-            'DNI' => $cliente->DNI,
-            'NOMBRE' => $cliente->NOMBRE,
-
-            'conversacion' =>
-                $datosWhatsapp[$cliente->DNI]['conversacion_id'] ?? null,
-
-            'ultimo_mensaje' =>
-                $datosWhatsapp[$cliente->DNI]['ultimo_mensaje'] ?? null,
-        ];
-    }
-
-
-    return response()->json([
-        'ok' => true,
-        'clientes' => $resultado
-    ]);
-}
-
-         
 
     
 public function generarMoratorias(Request $request)
