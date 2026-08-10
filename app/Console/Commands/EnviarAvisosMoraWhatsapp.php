@@ -19,9 +19,9 @@ class EnviarAvisosMoraWhatsapp extends Command
     {
         $this->info('Iniciando envío automático de avisos...');
 
-        $this->enviarPorRango(30, 59, 'primer_aviso_mora', 'wsp_primer_aviso_at');
-        $this->enviarPorRango(60, 74, 'segundo_aviso_mora', 'wsp_segundo_aviso_at');
-        $this->enviarPorRango(75, 79, 'aviso_prejudicial_mora', 'wsp_prejudicial_at');
+        // $this->enviarPorRango(30, 59, 'primer_aviso_mora', 'wsp_primer_aviso_at');
+        // $this->enviarPorRango(60, 74, 'segundo_aviso_mora', 'wsp_segundo_aviso_at');
+        $this->enviarPorRango(90, 120, 'aviso_prejudicial_mora', 'wsp_prejudicial_at');
 
         $this->info('Proceso finalizado.');
 
