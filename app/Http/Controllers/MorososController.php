@@ -24,6 +24,7 @@ class MorososController extends Controller
                 'ORDEN as id',
                 'TITGAR as titgar',
                 'DNITIT as dnitit',
+                'DNI as dni',
                 'NOMBRE as nombre',
                 'CALLE as calle',
                 'OBSERVACIO as observacion',
@@ -433,7 +434,7 @@ class MorososController extends Controller
     public function whatsappClientes(Request $request)
     {
         $q = trim((string) $request->get('q', ''));
-        $conversaciones = DB::connection('mysql')->select("
+        $conversaciones = DB::connection('mysql_local')->select("
         SELECT
             wc.id,
             wc.documento,

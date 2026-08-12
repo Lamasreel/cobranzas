@@ -215,6 +215,7 @@
                                 <input id="check-all-morosos" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
                             </th>
                             <th class="py-2 px-2 border whitespace-nowrap">Orden</th>
+                            <th class="py-2 px-2 border whitespace-nowrap">DNITIT</th>
                             <th class="py-2 px-2 border whitespace-nowrap">DNI</th>
                             <th class="py-2 px-2 border whitespace-nowrap">Nombre</th>
                             <th class="py-2 px-2 border whitespace-nowrap">Calle</th>
@@ -313,6 +314,7 @@
 
                                 <td class="py-1.5 px-2 border">{{ $loop->iteration }}</td>
                                 <td class="py-1.5 px-2 border whitespace-nowrap" id="dni-{{ $m->id }}">{{ $m->dnitit }}</td>
+                                <td class="py-1.5 px-2 border whitespace-nowrap" id="dni-{{ $m->id }}">{{ $m->dni }}</td>
                                 <td class="py-1.5 px-2 border font-medium min-w-[180px] text-left">{{ $m->nombre }}</td>
                                 <td class="py-1.5 px-2 border font-medium min-w-[180px] break-words text-left">{{ $m->calle }}</td>
                                 <td class="py-1.5 px-2 border whitespace-nowrap">{{ $m->localidad }}</td>
