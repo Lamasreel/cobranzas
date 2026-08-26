@@ -440,7 +440,7 @@ class MorososController extends Controller
     public function whatsappClientes(Request $request)
     {
         $q = trim((string) $request->get('q', ''));
-        $conversaciones = DB::connection('mysql_local')->select("
+        $conversaciones = DB::connection('mysql')->select("
         SELECT
             wc.id,
             wc.documento,
