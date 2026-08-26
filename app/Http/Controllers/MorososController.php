@@ -8,18 +8,23 @@ use Carbon\Carbon;
 use TCPDF;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\MorososExcelImport;
 
 class MorososController extends Controller
 {
-    private string $connection = 'mysql_local';
+        private string $connection = 'mysql_local';
     private string $tabla = 'morosos';
+    private string $tablaPagos = 'jlv_parte_resumen';
+    private string $localConnection = 'mysql';
+    private string $tablaPromesas = 'promesas';
 
     private function baseSelect()
     {
-        return DB::connection($this->connection)->table($this->tabla)
+                return DB::connection($this->connection)->table($this->tabla)
+            ->leftJoin($this->tablaPagos . ' AS r', 'r.jlv_cod_cli', '=', DB::raw($this->tabla . '.DNI'))
             ->select([
                 'ORDEN as id',
                 'TITGAR as titgar',
@@ -55,8 +60,9 @@ class MorososController extends Controller
                 'FECHA_ENC_ as fecha_enc_',
                 'FECHA_FORM as fecha_form',
                 'OBSERVACI2 as observaci2',
-                'LOC_TIT as loc_tit',
-            ]);
+                                'LOC_TIT as loc_tit',
+            ])
+            ->selectRaw("COALESCE(r.pagado, 0) AS pagado, COALESCE(r.cantidad_pagos, 0) AS cantidad_pagos, DEUDA AS saldo_vencido, INT_PUN AS interes_punitorio");
     }
 
     private function esPagado($estado): bool

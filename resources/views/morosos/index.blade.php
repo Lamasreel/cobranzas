@@ -226,6 +226,8 @@
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Deuda</th>
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Int. Pun.</th>
                             <th class="py-2 px-2 border text-right whitespace-nowrap">Saldo Total</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Pagado</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Restante</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">Estado</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">WSP</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">TIENE_WSP</th>
@@ -243,15 +245,26 @@
                                 $esPagado = str_contains($estNorm, 'pagad') || str_contains($estNorm, 'cancelad') || str_contains($estNorm, 'cobrad');
                                 $esPromesa = !$esPagado && (str_contains($estNorm, 'promesa') || str_contains($estNorm, 'compromiso'));
 
-                                $badge = $esPagado
-                                    ? 'bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200/80'
-                                    : ($esPromesa
-                                        ? 'bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200/80'
-                                        : 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200/70');
+                                $totalPagado = (float) ($m->total_pagado ?? (float) ($m->pagado ?? 0));
+                                $saldoTotal = (float) ($m->sal_tot ?? 0);
+                                $estaAlDia = $totalPagado > 0 && $totalPagado >= $saldoTotal;
+                                $saldoRestante = $saldoTotal - $totalPagado;
 
-                                $rowEstadoClass = $esPagado
-                                    ? 'moroso-row--pagado'
-                                    : ($esPromesa ? 'moroso-row--promesa' : 'moroso-row--default');
+                                $esPagoParcial = !$esPagado && $saldoTotal > 0 && $totalPagado > 0 && $totalPagado < $saldoTotal;
+
+                                $badge = $esPagoParcial
+                                    ? 'bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200/80'
+                                    : ($esPagado
+                                        ? 'bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200/80'
+                                        : ($esPromesa
+                                            ? 'bg-sky-100 text-sky-800 ring-1 ring-inset ring-sky-200/80'
+                                            : 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200/70'));
+
+                                $rowEstadoClass = $esPagoParcial
+                                    ? 'moroso-row--partial'
+                                    : (($esPagado || $estaAlDia)
+                                        ? 'moroso-row--pagado'
+                                        : ($esPromesa ? 'moroso-row--promesa' : 'moroso-row--default'));
 
                                 $phoneSources = [
                                     (string) ($m->telefono ?? ''),
@@ -342,6 +355,31 @@
                                 <td class="py-1.5 px-2 border text-right">${{ number_format((float) $m->int_pun, 0, ',', '.') }}</td>
                                 <td class="py-1.5 px-2 border text-right font-semibold">${{ number_format((float) $m->sal_tot, 0, ',', '.') }}</td>
 
+                                <td class="py-1.5 px-2 border text-center whitespace-nowrap">
+                                    @if($totalPagado > 0)
+                                        <span class="font-bold {{ $estaAlDia ? 'text-emerald-700' : 'text-amber-600' }}">
+                                            ${{ number_format($totalPagado, 0, ',', '.') }}
+                                        </span>
+                                        @if($estaAlDia)
+                                            <span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200/80">AL DÍA</span>
+                                        @elseif(($m->cantidad_pagos ?? 0) > 0)
+                                            <span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200/80">PAGO PARCIAL</span>
+                                        @endif
+                                    @else
+                                        <span class="text-slate-400">-</span>
+                                    @endif
+                                </td>
+
+                                <td class="py-1.5 px-2 border text-right whitespace-nowrap">
+                                    @if($estaAlDia)
+                                        <span class="font-semibold text-emerald-700">Al día</span>
+                                    @elseif($saldoRestante > 0)
+                                        <span class="text-red-600 font-semibold">${{ number_format($saldoRestante, 0, ',', '.') }}</span>
+                                    @else
+                                        <span class="text-slate-400">-</span>
+                                    @endif
+                                </td>
+
                                 <td class="py-1.5 px-2 border text-center">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-medium {{ $badge }}">
                                         {{ $m->estado ?: 'Sin estado' }}
@@ -364,7 +402,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="23" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
+                                <td colspan="25" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
                                     No hay morosos para los filtros seleccionados.
                                 </td>
                             </tr>
@@ -568,13 +606,13 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(document.getElementById('graficoMontos'), {
             type: 'doughnut',
             data: {
-                labels: ['Bloqueado', 'Fallecido', 'Normal', 'Afectado - Bloqueado'],
+                labels: ['Pagados', 'Promesa', 'Pendientes'],
                 datasets: [{
-                    data: [totales.pagados || 0, totales.promesa || 0, totales.pendiente || 0],
+                    data: [conteo.pagados || 0, conteo.promesa || 0, conteo.pendiente || 0],
                     backgroundColor: [colores.pagado, colores.promesa, colores.pendiente]
                 }]
             },
-            options: { plugins: { title: { display: true, text: 'Montos Saldo Vencido + Intereses Punitorios ($)' } } }
+            options: { plugins: { title: { display: true, text: 'Cantidad de morosos por estado' } } }
         });
     }
 
@@ -1519,6 +1557,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 #tabla-container .morosos-sticky-table tbody tr.moroso-row--default:hover td {
     background-color: rgb(248 250 252);
+}
+
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--partial td {
+    background-color: rgb(255, 137, 64);
+}
+
+#tabla-container .morosos-sticky-table tbody tr.moroso-row--partial:hover td {
+    background-color: rgb(255, 137, 64);
 }
 
 .estado-dot {
