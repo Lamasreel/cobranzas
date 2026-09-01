@@ -66,16 +66,16 @@
     <div class="linea"></div>
 
     <div class="derecha">
-    Aguilares, 22 de Mayo de 2026
+    Aguilares, {{ $fechaCarta ?? now()->locale('es')->translatedFormat('d \d\e F \d\e Y') }}
     </div>
 
     <div style="font-weight: bold;">
         Señor/a:
         <span class="negrita subrayado">
-                    @if($m->titular_garantia == 'TIT')
-                            {{ strtoupper($m->nombre) }}
-                        @else
+                    @if($m->es_garante)
                             {{ strtoupper($m->nombre) }} GARANTE DE: {{ strtoupper($m->nombre_titular ?? 'SIN TITULAR') }}
+                        @else
+                            {{ strtoupper($m->nombre) }}
                     @endif
         </span>
     </div>
@@ -83,7 +83,7 @@
     <div style="font-weight: bold;">
         Domicilio:
         <span class="negrita subrayado">
-        {{ strtoupper($m->calle) }} / {{ strtoupper($m->observaciones) }}
+        {{ strtoupper($m->calle) }} / {{ strtoupper($m->observaciones) }} / {{ strtoupper($m->localidad) }}
         </span>
     </div>
 
@@ -104,7 +104,7 @@
 
 </div>
 
-@if(($index + 1) % 2 == 0)
+@if(($index + 1) % 2 == 0 && ! $loop->last)
     <div class="salto"></div>
 @endif
 

@@ -22,14 +22,31 @@
                 </button>
             </form>
 
-            <button
-                id="btn-generar-cartas"
-                type="submit"
-                form="form-generar-cartas"
-                disabled
-                class="px-4 py-2 bg-slate-300 text-white text-xs font-bold rounded-lg cursor-not-allowed transition">
-                Generar seleccionadas
-            </button>
+            <div class="flex items-end gap-3">
+
+                <div>
+                    <label for="fecha_carta"
+                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                        Fecha de la carta
+                    </label>
+                    <input
+                        type="date"
+                        id="fecha_carta"
+                        name="fecha_carta"
+                        form="form-generar-cartas"
+                        value="{{ old('fecha_carta', now()->toDateString()) }}"
+                        class="px-2 py-2 border border-slate-300 rounded-lg text-xs text-slate-700 bg-white focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none transition">
+                </div>
+
+                <button
+                    id="btn-generar-cartas"
+                    type="submit"
+                    form="form-generar-cartas"
+                    disabled
+                    class="px-4 py-2 bg-slate-300 text-white text-xs font-bold rounded-lg cursor-not-allowed transition">
+                    Generar seleccionadas
+                </button>
+            </div>
         </div>
     </x-slot>
 

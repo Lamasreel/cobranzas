@@ -12,10 +12,15 @@ class ClientesCartasImport implements ToCollection
 
     public function collection(Collection $rows)
     {
-        foreach ($rows as $row) {
+        foreach ($rows as $index => $row) {
 
-            $documentoTitular = trim((string) ($row[0] ?? ''));
-            $documento = trim((string) ($row[1] ?? ''));
+            // Saltar la fila de encabezados
+            if ($index === 0) {
+                continue;
+            }
+
+            $documento = trim((string) ($row[0] ?? ''));
+            $documentoTitular = trim((string) ($row[1] ?? ''));
             $nombre = trim((string) ($row[2] ?? ''));
             $calle = trim((string) ($row[3] ?? ''));
             $observaciones = trim((string) ($row[4] ?? ''));

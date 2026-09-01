@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ClienteCarta;
 use App\Imports\ClientesCartasImport;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use TCPDF;
 use Illuminate\Support\Facades\DB;
@@ -115,22 +116,55 @@ class CartasController extends Controller
                 ->withErrors('No se encontraron clientes seleccionados.');
         }
 
+        // Fecha de impresión de las cartas (por defecto, hoy)
+        try {
+            $fecha = $request->filled('fecha_carta')
+                ? Carbon::parse($request->input('fecha_carta'))
+                : Carbon::today();
+        } catch (\Throwable $e) {
+            $fecha = Carbon::today();
+        }
+
+        $fechaCarta = $fecha->locale('es')->translatedFormat('d \d\e F \d\e Y');
+
+        // Resolver el nombre del titular para los garantes (por documento_titular)
+        $documentosTitulares = $clientes
+            ->pluck('documento_titular')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $titulares = ClienteCarta::whereIn('documento', $documentosTitulares)
+            ->pluck('nombre', 'documento');
+
+        foreach ($clientes as $cliente) {
+            $esGarante = $cliente->documento_titular !== null
+                && $cliente->documento_titular !== ''
+                && $cliente->documento_titular !== $cliente->documento;
+
+            $cliente->es_garante = $esGarante;
+            $cliente->nombre_titular = $esGarante
+                ? ($titulares[$cliente->documento_titular] ?? 'SIN TITULAR')
+                : null;
+        }
+
         $pdf = new \TCPDF('P', 'mm', 'A4');
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->SetMargins(15, 1, 15);
         $pdf->SetFont('dejavusans', '', 10, true);
         $pdf->setFontSubsetting(true);
-        $nuevomodulo = 1;
 
-        foreach ($clientes as $cliente) {
-            $pdf->AddPage();
+        // Se renderiza una sola vez la vista con únicamente los clientes
+        // seleccionados. La vista pagina 2 cartas por hoja (page-break).
+        $pdf->AddPage();
 
-            $html = view('morosos._carta_documento', 
-                compact('clientes'))->render();
+        $html = view('morosos._carta_documento', [
+            'clientes' => $clientes,
+            'fechaCarta' => $fechaCarta,
+        ])->render();
 
-            $pdf->writeHTML($html, true, false, true, false, '');
-        }
+        $pdf->writeHTML($html, true, false, true, false, '');
 
         return response($pdf->Output('cartas_documentadas.pdf', 'S'))
             ->header('Content-Type', 'application/pdf')
