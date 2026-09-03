@@ -55,7 +55,6 @@ class SendWhatsappReminders extends Command
             }
         }
 
-        $estadoPromesa = (int) config('services.whatsapp.auto_estado_promesa_id');
         $template = (string) config('services.whatsapp.auto_template');
         $lang = (string) config('services.whatsapp.auto_template_lang');
 
@@ -75,27 +74,53 @@ class SendWhatsappReminders extends Command
             $components = $decoded;
         }
 
-        $query = DB::table('cliente')
-            ->where('estado', $estadoPromesa)
-            ->whereDate('fecha_promesa_pago', $now->toDateString());
+        // Promesas pendientes (sin resultado CUMPLIDO/INCUMPLIDO) cuya fecha
+        // prometida es hoy, leídas de la tabla promesas_pago de sqlpremier.
+        $promesas = DB::connection('mysql_local')
+            ->table('promesas_pago')
+            ->whereDate('fecha_prometida', $now->toDateString())
+            ->whereNull('resultado')
+            ->get(['dni', 'fecha_agendada', 'fecha_prometida', 'observaciones']);
 
-        $clientes = $query->get();
+        $this->info('Promesas con vencimiento hoy: ' . $promesas->count());
 
-        $this->info('Clientes elegibles: ' . $clientes->count());
+        if ($promesas->isEmpty()) {
+            return self::SUCCESS;
+        }
+
+        // Datos de contacto de los morosos que tienen promesa vencida hoy.
+        $dnis = $promesas->pluck('dni')->filter()->unique()->values()->all();
+        $placeholders = implode(',', array_fill(0, count($dnis), '?'));
+
+        $morosos = DB::connection('mysql_local')->select(
+            "SELECT DNI, NOMBRE, TEL_MOVIL1, TEL_MOVIL2, TEL_MOVIL3, TEL_ALTER1, TEL_ALTER2
+             FROM morosos
+             WHERE DNI IN ($placeholders)",
+            $dnis
+        );
+
+        $morososPorDni = collect($morosos)->keyBy(fn ($m) => trim((string) $m->DNI));
 
         $ok = 0;
         $fail = 0;
 
-        foreach ($clientes as $c) {
-            $phones = $this->collectPhones($c);
+        foreach ($promesas as $promesa) {
+            $moroso = $morososPorDni->get(trim((string) $promesa->dni));
+
+            if (!$moroso) {
+                $this->warn("Promesa del DNI {$promesa->dni} sin registro en morosos.");
+                continue;
+            }
+
+            $phones = $this->collectPhones($moroso);
 
             if ($phones === []) {
-                $this->warn("Cliente {$c->id} sin teléfonos.");
+                $this->warn("DNI {$moroso->DNI} sin teléfonos.");
                 continue;
             }
 
             foreach ($phones as $phone) {
-                $this->line("- {$c->id} {$c->nombre} -> {$phone}");
+                $this->line("- {$moroso->DNI} {$moroso->NOMBRE} -> {$phone}");
 
                 if ($dry) {
                     continue;
@@ -119,15 +144,19 @@ class SendWhatsappReminders extends Command
     }
 
     /**
+     * Reúne los teléfonos de una fila de la tabla morosos
+     * (TEL_MOVIL1..3, TEL_ALTER1..2).
+     *
      * @return list<string>
      */
-    private function collectPhones(object $c): array
+    private function collectPhones(object $m): array
     {
         $sources = [
-            (string) ($c->telefono ?? ''),
-            (string) ($c->telefono_1 ?? ''),
-            (string) ($c->telefono_2 ?? ''),
-            (string) ($c->telefono_3 ?? ''),
+            (string) ($m->TEL_MOVIL1 ?? ''),
+            (string) ($m->TEL_MOVIL2 ?? ''),
+            (string) ($m->TEL_MOVIL3 ?? ''),
+            (string) ($m->TEL_ALTER1 ?? ''),
+            (string) ($m->TEL_ALTER2 ?? ''),
         ];
 
         $phones = [];

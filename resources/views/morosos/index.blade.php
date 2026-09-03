@@ -429,13 +429,13 @@
 </x-app-layout>
 
 <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 bg-slate-900/55 backdrop-blur-[2px]">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200/90 ring-1 ring-black/5" role="dialog" aria-modal="true" aria-labelledby="modalCliente">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-slate-200/90 ring-1 ring-black/5" role="dialog" aria-modal="true" aria-labelledby="modalCliente">
         <div class="flex items-start justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
             <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-bold uppercase tracking-widest text-emerald-700/90">Gestión de mora</p>
                 <h2 id="modalCliente" class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight mt-1 truncate"></h2>
                 <p class="text-xs text-slate-500 mt-1">
-                    En esta nueva tabla no existen campos de fecha/observación de promesa; se actualizará el ESTADO.
+                    Se registran la fecha y las observaciones en la tabla <b>promesas_pago</b> (sqlpremier) y el estado pasa a PROMESA DE PAGO.
                 </p>
             </div>
             <button type="button" onclick="closeModal()" class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition" aria-label="Cerrar">
@@ -443,12 +443,41 @@
             </button>
         </div>
 
+        <div class="px-5 sm:px-6 pt-4">
+            <div id="promesaInfo">
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+                    Consultando promesa de pago…
+                </div>
+            </div>
+        </div>
+
         <form id="promesaForm" method="POST" action="{{ route('morosos.promesa') }}" class="px-5 sm:px-6 py-5 space-y-5">
             @csrf
             <input type="hidden" name="id" id="modalId">
 
-            <div class="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-sm p-3">
-                Si querés guardar fecha de promesa y observaciones, hay que agregar esos campos a <b>maectas2</b>.
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="modalPromesaFecha" class="block text-sm font-semibold text-slate-700">Fecha de promesa de pago</label>
+                    <input
+                        type="date"
+                        id="modalPromesaFecha"
+                        name="fecha_promesa"
+                        required
+                        class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
+                    >
+                </div>
+
+                <div>
+                    <label for="modalPromesaObservaciones" class="block text-sm font-semibold text-slate-700">Observaciones</label>
+                    <textarea
+                        id="modalPromesaObservaciones"
+                        name="observaciones"
+                        rows="3"
+                        maxlength="2000"
+                        placeholder="Detalle del compromiso de pago (opcional)"
+                        class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
+                    ></textarea>
+                </div>
             </div>
 
             <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 border-t border-slate-100">
@@ -588,6 +617,7 @@
     data-conversacion-url="{{ route('morosos.whatsapp.conversacion', ['documento' => '__DNI__']) }}"
     data-csrf="{{ csrf_token() }}"
 ></div>
+<div id="promesa-info-config" data-url="{{ route('morosos.promesa_info', ['id' => '__ID__']) }}" data-csrf="{{ csrf_token() }}"></div>
 <div id="wa-auto-bootstrap" data-json='@json($whatsappAuto ?? ["enabled" => false, "day_of_month" => 1, "time" => "09:00"])'></div>
 <div id="wa-auto-api" data-update-url="{{ route('morosos.whatsapp_automation.update') }}" data-csrf="{{ csrf_token() }}"></div>
 <div id="morosos-datos" data-totales='@json($totales)' data-conteo='@json($conteo)' data-prediccion='@json($prediccion)'></div>
@@ -652,6 +682,7 @@ function openModal(id, cliente, estado, fecha, obs) {
     const modal = document.getElementById('modal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    cargarPromesaInfo(id);
 }
 
 function closeModal() {
@@ -703,31 +734,58 @@ function closeTelefonosModal() {
 function marcarPagado() {
     if (!clienteId) return;
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/morosos/pagado/' + clienteId;
-
-    const token = document.createElement('input');
-    token.type = 'hidden';
-    token.name = '_token';
-    token.value = '{{ csrf_token() }}';
-    form.appendChild(token);
-
-    document.body.appendChild(form);
-    confirmAndSubmitPagado(form, document.getElementById('modalCliente')?.innerText || 'Cliente');
-}
-
-function confirmAndSubmitPagado(form, clienteNombre) {
     Swal.fire({
         title: 'Marcar como pagado',
-        text: `¿Confirmás que ${clienteNombre} ya pagó?`,
-        icon: 'question',
+        html: `
+            <div class="text-left">
+                <div class="text-sm text-slate-600 mb-2">Ingresá el <b>importe efectivamente pagado</b>:</div>
+                <input id="swal-importe" type="text" inputmode="decimal" placeholder="0,00"
+                       class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
+                <div class="text-xs text-slate-400 mt-2">Si el cliente tiene una promesa pendiente, quedará registrada como CUMPLIDO con este importe.</div>
+            </div>
+        `,
+        icon: 'info',
         showCancelButton: true,
-        confirmButtonText: 'Sí, marcar',
+        confirmButtonText: 'Confirmar pago',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#16a34a'
+        confirmButtonColor: '#16a34a',
+        didOpen: () => document.getElementById('swal-importe')?.focus()
     }).then((r) => {
         if (!r.isConfirmed) return;
+
+        let raw = (document.getElementById('swal-importe')?.value || '').trim();
+
+        if (raw.includes(',')) {
+            raw = raw.replace(/\./g, '').replace(',', '.');
+        } else if ((raw.match(/\./g) || []).length > 1) {
+            raw = raw.replace(/\./g, '');
+        }
+
+        const valor = parseFloat(raw);
+
+        if (!Number.isFinite(valor) || valor <= 0) {
+            Swal.fire({ icon: 'warning', title: 'Importe inválido', text: 'Ingresá un importe mayor a 0.' });
+            return;
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/morosos/pagado/' + clienteId;
+
+        const token = document.createElement('input');
+        token.type = 'hidden';
+        token.name = '_token';
+        token.value = '{{ csrf_token() }}';
+        form.appendChild(token);
+
+        const importeInput = document.createElement('input');
+        importeInput.type = 'hidden';
+        importeInput.name = 'importe';
+        importeInput.value = valor.toFixed(2);
+        form.appendChild(importeInput);
+
+        document.body.appendChild(form);
+
         Swal.fire({ title: 'Marcando pago…', text: 'Por favor esperá', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         form.submit();
     });
@@ -860,9 +918,16 @@ document.addEventListener('DOMContentLoaded', () => {
         promesaForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
+            const fecha = document.getElementById('modalPromesaFecha')?.value || '';
+
+            if (!fecha) {
+                Swal.fire({ icon: 'warning', title: 'Falta la fecha', text: 'Indicá la fecha de la promesa de pago.' });
+                return;
+            }
+
             Swal.fire({
                 title: 'Marcar promesa',
-                text: 'El estado del cliente pasará a PROMESA DE PAGO.',
+                html: `Se registrará la promesa con fecha <b>${fecha}</b> y el estado pasará a <b>PROMESA DE PAGO</b>.`,
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: 'Guardar',
@@ -949,7 +1014,7 @@ async function cargarClientesWhatsapp(busqueda = '') {
 
             btn.innerHTML = `
                 <div class="font-bold text-slate-800">${escapeHtml(cliente.NOMBRE || 'Sin nombre')}</div>
-                <div class="text-xs text-slate-500">DNI: ${escapeHtml(cliente.DNI || '-')}</div>
+                <div class="text-xs text-slate-500">${cliente.DNI ? 'DNI: ' + escapeHtml(cliente.DNI) : 'Teléfono: ' + escapeHtml(cliente.telefono || '-')}</div>
                 <div class="text-xs text-slate-400 mt-1">
                     Último mensaje: ${escapeHtml(cliente.ultimo_mensaje || '-')}
                 </div>
@@ -973,15 +1038,27 @@ async function cargarClientesWhatsapp(busqueda = '') {
 
 async function cargarConversacionWhatsapp(documento, cliente) {
     const cfg = document.getElementById('whatsapp-config');
-
-    const url = cfg.dataset.conversacionUrl.replace('__DNI__', encodeURIComponent(documento));
     const header = document.getElementById('waClienteHeader');
     const mensajes = document.getElementById('waMensajesLista');
 
     header.innerHTML = `
         <h3 class="font-bold text-slate-800">${escapeHtml(cliente.NOMBRE || 'Cliente')}</h3>
-        <p class="text-sm text-slate-500">DNI: ${escapeHtml(documento || '-')}</p>
+        <p class="text-sm text-slate-500">${documento ? 'DNI: ' + escapeHtml(documento) : 'Teléfono: ' + escapeHtml(cliente.telefono || '-')}</p>
     `;
+
+    // Conversaciones de prueba (sin DNI asociado) no tienen chat por DNI.
+    if (!documento) {
+        mensajes.innerHTML = `
+            <div class="text-center text-sm text-slate-500 mt-10 px-6">
+                <div class="text-base font-semibold text-slate-600 mb-1">Conversación de prueba</div>
+                Mensajes registrados desde la prueba de plantillas enviada al número
+                <b>${escapeHtml(cliente.telefono || '')}</b>.
+            </div>
+        `;
+        return;
+    }
+
+    const url = cfg.dataset.conversacionUrl.replace('__DNI__', encodeURIComponent(documento));
 
     mensajes.innerHTML = `
         <div class="text-center text-sm text-slate-500 mt-10">
@@ -1057,6 +1134,103 @@ function escapeHtml(value) {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
+}
+
+function formatFecha(value) {
+    if (!value) return '—';
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+    if (!m) return String(value).replaceAll('-', '/');
+    return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+function fmtDinero(value) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return '0,00';
+    return Number(value).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function cargarPromesaInfo(id) {
+    const cfg = document.getElementById('promesa-info-config');
+    const div = document.getElementById('promesaInfo');
+    if (!cfg || !div) return;
+
+    const url = (cfg.dataset.url || '').replace('__ID__', encodeURIComponent(id));
+
+    fetch(url, {
+        headers: { 'Accept': 'application/json' }
+    })
+        .then((r) => r.json().catch(() => ({})))
+        .then((data) => {
+            if (!data || data.ok === false) {
+                div.innerHTML = `
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-600">
+                        No se pudo consultar la promesa de pago.
+                    </div>
+                `;
+                return;
+            }
+            renderPromesaInfo(div, data);
+        })
+        .catch(() => {
+            div.innerHTML = `
+                <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-600">
+                    Error al consultar la promesa de pago.
+                </div>
+            `;
+        });
+}
+
+function renderPromesaInfo(div, data) {
+    const pendiente = data.pendiente || null;
+    const historial = data.historial || [];
+    const tabla = escapeHtml(data.tabla || 'promesas_pago (sqlpremier)');
+
+    let html = `<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">`;
+    html += `<div class="font-bold text-emerald-800 mb-1"><i class="fa-solid fa-handshake mr-1"></i> Promesa de pago</div>`;
+    html += `<div class="text-xs text-emerald-700 mb-1">Registrada en la tabla <code>${tabla}</code></div>`;
+
+    if (pendiente) {
+        html += `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
+                <div><b>Fecha agendada:</b> ${formatFecha(pendiente.fecha_agendada)}</div>
+                <div><b>Fecha prometida:</b> ${formatFecha(pendiente.fecha_prometida)}</div>
+                <div class="sm:col-span-2"><b>Observaciones:</b> ${escapeHtml(pendiente.observaciones || '—')}</div>
+            </div>
+            <span class="mt-1.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-200">PENDIENTE</span>
+        `;
+    } else {
+        html += `<div class="text-emerald-900">Este cliente no tiene una promesa de pago pendiente.</div>`;
+    }
+
+    if (historial.length > 0) {
+        html += `<div class="mt-2 pt-2 border-t border-emerald-200">`;
+        html += `<div class="text-xs font-bold text-emerald-700 mb-1">Historial en promesas_pago</div>`;
+        historial.forEach((p) => {
+            const res = (p.resultado || 'PENDIENTE').toUpperCase();
+            const badge = res === 'CUMPLIDO'
+                ? 'bg-emerald-100 text-emerald-800 ring-emerald-200'
+                : (res === 'INCUMPLIDO'
+                    ? 'bg-red-100 text-red-800 ring-red-200'
+                    : 'bg-blue-100 text-blue-800 ring-blue-200');
+            const importe = p.importe_pagado !== null && p.importe_pagado !== undefined
+                ? ` · <b>$${fmtDinero(p.importe_pagado)}</b>`
+                : '';
+
+            html += `
+                <div class="flex items-start justify-between gap-2 py-0.5 text-xs">
+                    <span class="min-w-0 break-words">
+                        ${formatFecha(p.fecha_prometida)}${p.observaciones ? ' — ' + escapeHtml(p.observaciones) : ''}
+                    </span>
+                    <span class="shrink-0 inline-block px-1.5 py-0.5 rounded-full text-[9px] font-bold ring-1 ring-inset ${badge}">
+                        ${escapeHtml(res)}${importe}
+                    </span>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    div.innerHTML = html;
 }
 
 function readWaAutoSettingsFromDom() {

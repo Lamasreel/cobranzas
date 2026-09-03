@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class WhatsappConversacion extends Model
 {
+    protected $connection = 'mysql_local';
+
     protected $table = 'whatsapp_conversaciones';
 
     protected $fillable = [

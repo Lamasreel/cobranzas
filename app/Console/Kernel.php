@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Support\WhatsappAutomationSettings;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -16,8 +17,21 @@ class Kernel extends ConsoleKernel
         $schedule->command('app:actualizar-pagos-resumen')
             ->dailyAt('04:30');
 
-        $schedule->command('app:enviar-avisos-mora')
-        ->monthlyOn(23, '20:26');
+        // Envío automático de avisos de mora por WhatsApp.
+        // El día del mes y la hora se toman de la configuración guardada desde la UI
+        // (morosos > WhatsApp automático), persistida en WhatsappAutomationSettings.
+        $auto = WhatsappAutomationSettings::read();
+
+        if (!empty($auto['enabled'])) {
+            $day = (int) ($auto['day_of_month'] ?? 0);
+            $time = (string) ($auto['time'] ?? '');
+
+            if ($day >= 1 && $day <= 31 && preg_match('/^\d{2}:\d{2}$/', $time)) {
+                $schedule->command('app:enviar-avisos-mora-whatsapp')
+                    ->monthlyOn($day, $time)
+                    ->withoutOverlapping();
+            }
+        }
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\WhatsappSender;
+use App\Support\PromesaDePago;
 use App\Support\WhatsappAutomationSettings;
 use Carbon\Carbon;
 use TCPDF;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\MorososExcelImport;
+use App\Models\WhatsappConversacion;
+use App\Models\WhatsappMensaje;
 
 class MorososController extends Controller
 {
@@ -19,7 +22,7 @@ class MorososController extends Controller
     private string $tabla = 'morosos';
     private string $tablaPagos = 'jlv_parte_resumen';
     private string $localConnection = 'mysql';
-    private string $tablaPromesas = 'promesas';
+    private string $tablaPromesas = 'promesas_pago';
 
     private function baseSelect()
     {
@@ -304,15 +307,85 @@ class MorososController extends Controller
             ->header('Content-Type', 'application/pdf');
     }
 
-    public function marcarPagado($id)
+    public function marcarPagado(Request $request, $id)
     {
+        $data = $request->validate([
+            'importe' => ['required', 'numeric', 'min:0.01'],
+        ], [
+            'importe.required' => 'Debés indicar el importe pagado.',
+            'importe.numeric' => 'El importe debe ser un número.',
+            'importe.min' => 'El importe debe ser mayor a 0.',
+        ]);
+
+        // La tabla morosos no tiene columna id; la clave de fila es ORDEN
+        // (en la vista se expone como id a través del baseSelect).
+        $moroso = DB::connection($this->connection)->table($this->tabla)
+            ->where('ORDEN', $id)
+            ->first();
+
+        if (!$moroso) {
+            return back()->with('error', 'No se encontró el cliente indicado.');
+        }
+
+        // Registra el pago en la promesa (tabla promesas_pago de sqlpremier):
+        // si hay una promesa pendiente la pasa a CUMPLIDO con el importe, y si
+        // no la hay crea un registro CUMPLIDO para dejar guardado el importe.
+        PromesaDePago::marcarPagada((string) $moroso->DNI, (float) $data['importe']);
+
         DB::connection($this->connection)->table($this->tabla)
-            ->where('id', $id)
+            ->where('ORDEN', $moroso->ORDEN)
+            ->where('DNI', $moroso->DNI)
             ->update([
                 'ESTADO' => 'PAGADO',
             ]);
 
         return back();
+    }
+
+    /**
+     * Devuelve dónde está registrada la promesa del moroso (tabla promesas_pago
+     * de sqlpremier): la promesa pendiente y el historial completo, para mostrarlo
+     * en el modal de gestión de mora.
+     */
+    public function promesaInfo($id)
+    {
+        $moroso = DB::connection($this->connection)->table($this->tabla)
+            ->where('ORDEN', $id)
+            ->first();
+
+        if (!$moroso) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No se encontró el cliente.',
+            ], 404);
+        }
+
+        $datos = PromesaDePago::datosParaVista((string) $moroso->DNI);
+
+        return response()->json([
+            'ok' => true,
+            'orden' => (int) $moroso->ORDEN,
+            'dni' => $moroso->DNI,
+            'nombre' => $moroso->NOMBRE,
+            'tabla' => 'promesas_pago (sqlpremier)',
+            'pendiente' => $datos['pendiente']
+                ? $this->serializarPromesa($datos['pendiente'])
+                : null,
+            'historial' => array_map(fn ($p) => $this->serializarPromesa($p), $datos['historial']),
+        ]);
+    }
+
+    private function serializarPromesa(object $promesa): array
+    {
+        return [
+            'id' => (int) $promesa->id,
+            'dni' => $promesa->dni,
+            'fecha_agendada' => $promesa->fecha_agendada,
+            'fecha_prometida' => $promesa->fecha_prometida,
+            'resultado' => $promesa->resultado !== null ? trim((string) $promesa->resultado) : null,
+            'importe_pagado' => $promesa->importe_pagado !== null ? (float) $promesa->importe_pagado : null,
+            'observaciones' => $promesa->observaciones,
+        ];
     }
 
     public function politicaPrivacidad()
@@ -327,7 +400,7 @@ class MorososController extends Controller
         ]);
 
         DB::connection($this->connection)->table($this->tabla)
-            ->whereIn('id', $data['ids'])
+            ->whereIn('ORDEN', $data['ids'])
             ->update([
                 'ESTADO' => 'PAGADO',
             ]);
@@ -339,13 +412,40 @@ class MorososController extends Controller
     {
         $data = $request->validate([
             'id' => ['required', 'integer', 'min:1'],
+            'fecha_promesa' => [
+                'required',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (PromesaDePago::normalizarFecha($value) === null) {
+                        $fail('La fecha de promesa no es válida (usá formato dd/mm/aaaa o aaaa-mm-dd).');
+                    }
+                },
+            ],
+            'observaciones' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        // La tabla morosos no tiene columna id; la clave de fila es ORDEN.
+        $moroso = DB::connection($this->connection)->table($this->tabla)
+            ->where('ORDEN', $data['id'])
+            ->first();
+
+        if (!$moroso) {
+            return back()->with('error', 'No se encontró el cliente indicado.');
+        }
+
         DB::connection($this->connection)->table($this->tabla)
-            ->where('id', $data['id'])
+            ->where('ORDEN', $moroso->ORDEN)
+            ->where('DNI', $moroso->DNI)
             ->update([
                 'ESTADO' => 'PROMESA DE PAGO',
             ]);
+
+        // Registra/actualiza la promesa (fecha + observaciones) en la tabla
+        // promesas_pago de sqlpremier (conexión mysql_local).
+        PromesaDePago::upsertDesdeMoroso(
+            $moroso,
+            $data['fecha_promesa'],
+            $data['observaciones'] ?? null
+        );
 
         return back();
     }
@@ -410,6 +510,138 @@ class MorososController extends Controller
         ]);
     }
 
+    /**
+     * Envía las 3 plantillas de aviso de mora (primer_aviso_mora, segundo_aviso_mora
+     * y aviso_prejudicial_mora) a un único número de prueba. NO envía a clientes.
+     *
+     * El número se normaliza al formato de Meta para celulares argentinos (549…).
+     * Cada envío queda registrado en whatsapp_mensajes para poder verlo en la
+     * página de conversaciones de WhatsApp.
+     */
+    public function enviarPlantillasPrueba(Request $request, WhatsappSender $whatsapp)
+    {
+        $data = $request->validate([
+            'telefono' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        $telefono = $this->normalizarTelefonoPrueba(
+            (string) ($data['telefono'] ?? config('services.whatsapp.to'))
+        );
+
+        if ($telefono === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'El número de prueba no es válido.',
+            ], 422);
+        }
+
+        $lang = 'es_AR';
+        $deuda = '$100.000';
+        $nombre = 'Cliente de prueba';
+
+        // Parámetros de cada plantilla (deben coincidir con las creadas en Meta).
+        $plantillas = [
+            'primer_aviso_mora' => [
+                $nombre,
+                now()->format('d/m/Y'),
+                $deuda,
+            ],
+            'segundo_aviso_mora' => [
+                $nombre,
+                $deuda,
+            ],
+            'aviso_prejudicial_mora' => [
+                $nombre,
+                '90',
+                now()->addDays(3)->format('d/m/Y'),
+            ],
+        ];
+
+        $resultados = [];
+        $todasOk = true;
+
+        foreach ($plantillas as $template => $params) {
+            $resultado = $whatsapp->sendTemplate($telefono, $template, $lang, $params);
+
+            $ok = $resultado['ok'] && !$resultado['exception'];
+            $todasOk = $todasOk && $ok;
+
+            $resultados[$template] = [
+                'ok' => $ok,
+                'status' => $resultado['status'],
+                'error' => $ok ? null : ($resultado['json'] ?? $resultado['exception']),
+            ];
+
+            $this->guardarMensajePrueba(
+                $telefono,
+                $template,
+                $ok
+            );
+        }
+
+        return response()->json([
+            'ok' => true,
+            'todasOk' => $todasOk,
+            'telefono' => $telefono,
+            'resultados' => $resultados,
+        ]);
+    }
+
+    private function guardarMensajePrueba(string $telefono, string $template, bool $ok): void
+    {
+        try {
+            $conversacion = WhatsappConversacion::firstOrCreate(
+                ['telefono' => $telefono],
+                ['estado_flujo' => 'prueba_plantillas']
+            );
+
+            WhatsappMensaje::create([
+                'conversacion_id' => $conversacion->id,
+                'telefono' => $telefono,
+                'tipo' => 'saliente',
+                'mensaje' => 'Plantilla de prueba: ' . $template . ($ok ? ' (enviada)' : ' (error al enviar)'),
+            ]);
+        } catch (\Throwable $e) {
+            // Registrar la prueba no debe romper el envío.
+            logger()->warning('No se pudo guardar el mensaje de prueba en whatsapp_mensajes.', [
+                'telefono' => $telefono,
+                'template' => $template,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Normaliza un número de teléfono al formato de Meta para celulares
+     * argentinos: 549 + código de área (sin 0) + número.
+     */
+    private function normalizarTelefonoPrueba(string $telefono): string
+    {
+        $telefono = preg_replace('/\D/', '', $telefono) ?? '';
+
+        if ($telefono === '') {
+            return '';
+        }
+
+        if (str_starts_with($telefono, '0')) {
+            $telefono = substr($telefono, 1);
+        }
+
+        if (!str_starts_with($telefono, '54')) {
+            $telefono = '54' . $telefono;
+        }
+
+        // Móvil argentino: si arranca con 54 pero sin el 9 nacional y quedan 12
+        // dígitos, se inserta el 9 (549…). Ej: 543865250447 → 5493865250447.
+        if (str_starts_with($telefono, '54')
+            && !str_starts_with($telefono, '549')
+            && strlen($telefono) === 12) {
+            $telefono = '54' . '9' . substr($telefono, 2);
+        }
+
+        return $telefono;
+    }
+
     public function whatsappAutomationShow()
     {
         return response()->json([
@@ -440,10 +672,11 @@ class MorososController extends Controller
     public function whatsappClientes(Request $request)
     {
         $q = trim((string) $request->get('q', ''));
-        $conversaciones = DB::connection('mysql')->select("
+        $conversaciones = DB::connection($this->connection)->select("
         SELECT
             wc.id,
             wc.documento,
+            wc.telefono,
             MAX(wm.created_at) AS ultimo_mensaje
         FROM whatsapp_conversaciones wc
     
@@ -452,7 +685,8 @@ class MorososController extends Controller
     
         GROUP BY
             wc.id,
-            wc.documento
+            wc.documento,
+            wc.telefono
     
         ORDER BY ultimo_mensaje DESC
     ");
@@ -468,16 +702,19 @@ class MorososController extends Controller
         ->values()
         ->toArray();
     
-        $placeholders = implode(',', array_fill(0, count($dnis), '?'));
-        $placeholders = implode(',', array_fill(0, count($dnis), '?'));
+        $clientes = [];
 
-        $clientes = DB::connection('mysql_local')->select("
-            SELECT
-                DNI,
-                NOMBRE
-            FROM morosos
-            WHERE DNI IN ($placeholders)
-        ", $dnis);
+        if ($dnis !== []) {
+            $placeholders = implode(',', array_fill(0, count($dnis), '?'));
+
+            $clientes = DB::connection($this->connection)->select("
+                SELECT
+                    DNI,
+                    NOMBRE
+                FROM morosos
+                WHERE DNI IN ($placeholders)
+            ", $dnis);
+        }
         // ======================================
         // 4. Indexar conversaciones por DNI
         // ======================================
@@ -500,7 +737,11 @@ class MorososController extends Controller
             $resultado[] = [
                 'conversacion_id' => $conv->id,
                 'DNI'             => $conv->documento,
-                'NOMBRE'          => $cliente->NOMBRE ?? '(Sin cliente)',
+                'NOMBRE'          => $cliente->NOMBRE
+                    ?? ($conv->documento !== null && trim((string) $conv->documento) !== ''
+                        ? '(Sin cliente)'
+                        : 'Prueba WhatsApp (' . $conv->telefono . ')'),
+                'telefono'        => $conv->telefono,
                 'ultimo_mensaje'  => $conv->ultimo_mensaje,
             ];
         }
@@ -610,7 +851,7 @@ public function generarMoratorias(Request $request)
             ORDER BY wm.created_at ASC
         ";
     
-        $rows = DB::select($sql);
+        $rows = DB::connection($this->connection)->select($sql);
     
         $mensajes = array_map(function ($m) {
             return [

@@ -53,6 +53,9 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/morosos/promesa', [MorososController::class, 'actualizarPromesa'])->name('morosos.promesa');
 Route::post('/morosos/pagado/{id}', [MorososController::class, 'marcarPagado'])->name('morosos.pagado');
+Route::get('/morosos/promesa/{id}', [MorososController::class, 'promesaInfo'])
+    ->middleware(['auth', 'verified'])
+    ->name('morosos.promesa_info');
 Route::post('/morosos/pagado-masivo', [MorososController::class, 'marcarPagadosMasivo'])->name('morosos.pagado_masivo');
 Route::post('/morosos/whatsapp-test', [MorososController::class, 'enviarWhatsappTest'])
     ->middleware(['auth', 'verified'])
@@ -87,6 +90,16 @@ Route::post('/promesa_cliente', [PromesaClienteController::class, 'store'])
 
     Route::get('/morosos/whatsapp/conversacion/{documento}', [MorososController::class, 'whatsappConversacion'])
     ->name('morosos.whatsapp.conversacion');
+
+    Route::get('/whatsapp', function () {
+        return view('whatsapp.index');
+    })
+    ->middleware(['auth', 'verified'])
+    ->name('whatsapp.index');
+
+    Route::post('/whatsapp/plantillas-prueba', [MorososController::class, 'enviarPlantillasPrueba'])
+    ->middleware(['auth', 'verified'])
+    ->name('whatsapp.plantillas_prueba');
 
     Route::get('/cartas/moratoria', [CartasController::class, 'moratoria'])
     ->name('cartas.moratoria');

@@ -53,6 +53,13 @@
             <span>Cartas Demandadas</span>
         </a>
 
+<a
+            href="{{ route('whatsapp.index') }}"
+            class="{{ request()->routeIs('whatsapp.*') ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70' : 'text-slate-700 hover:bg-slate-50' }} flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition"
+        >
+        <i class="fa-brands fa-whatsapp"></i>
+            <span>Conversaciones WhatsApp</span>
+        </a>
         <a
             href="{{ route('cartas.moratoria') }}"
             class="{{ request()->routeIs('cartas.moratoria') ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70' : 'text-slate-700 hover:bg-slate-50' }} flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition"

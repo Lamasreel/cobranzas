@@ -84,5 +84,24 @@
                 Generar Cartas →
             </div>
         </a>
+
+        <a href="{{ route('whatsapp.index') }}" class="group bg-white rounded-2xl ring-1 ring-slate-200/70 shadow-sm hover:shadow-md transition overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-900">Conversaciones WhatsApp</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            Hacé pruebas de las plantillas y revisá los mensajes del bot.
+                        </div>
+                    </div>
+                    <div class="h-11 w-11 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200/70 flex items-center justify-center">
+                        <i class="fa-brands fa-whatsapp text-emerald-600"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-white border-t border-slate-100 text-sm font-semibold text-emerald-700 group-hover:text-emerald-800">
+                Abrir WhatsApp →
+            </div>
+        </a>
     </div>
 </x-app-layout>

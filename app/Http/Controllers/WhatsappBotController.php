@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\WhatsappConversacion;
 use App\Models\WhatsappMensaje;
+use App\Support\PromesaDePago;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -46,8 +48,9 @@ class WhatsappBotController extends Controller
 
         $texto = trim(
             $mensaje['text']['body']
-            ?? $mensaje['interactive']['button_reply']['id']
-            ?? ''
+                ?? $mensaje['interactive']['button_reply']['id']
+                ?? $mensaje['interactive']['list_reply']['id']
+                ?? ''
         );
 
         if (!$telefono || !$texto) {
@@ -81,6 +84,10 @@ class WhatsappBotController extends Controller
                 $respuesta['mensaje'],
                 $respuesta['botones']
             );
+
+            $mensajeGuardado = $respuesta['mensaje'];
+        } elseif (is_array($respuesta) && ($respuesta['tipo'] ?? '') === 'lista') {
+            $enviado = $this->enviarLista($telefono, $respuesta);
 
             $mensajeGuardado = $respuesta['mensaje'];
         } else {
@@ -124,7 +131,7 @@ class WhatsappBotController extends Controller
             return $this->menuPrincipal($conversacion);
         }
 
-        if (in_array($texto, ['opcion_transferencia', 'opcion_refinanciacion', 'opcion_sucursal'])) {
+        if (in_array($texto, ['opcion_transferencia', 'opcion_refinanciacion', 'opcion_sucursal', 'opcion_promesa'])) {
             if (!$conversacion->documento) {
                 $conversacion->update([
                     'estado_flujo' => 'esperando_dni',
@@ -134,6 +141,35 @@ class WhatsappBotController extends Controller
             }
 
             return $this->resolverOpcion($conversacion, $texto);
+        }
+
+        // Flujo de promesa de pago: esperando la fecha.
+        if ($conversacion->estado_flujo === 'promesa_fecha') {
+            $fecha = PromesaDePago::normalizarFecha($texto);
+
+            if (!$fecha) {
+                return "No pude entender la fecha. Probá de nuevo con el formato *dd/mm/aaaa* (ejemplo: *25/12/2026*).\n\nPara cancelar escribí *menu*.";
+            }
+
+            $conversacion->update([
+                'estado_flujo' => 'promesa_observaciones:' . $fecha,
+            ]);
+
+            $fechaFormateada = Carbon::parse($fecha)->format('d/m/Y');
+
+            return "✅ *Fecha registrada: {$fechaFormateada}*\n\n" .
+                "Ahora escribinos las *observaciones* que quieras dejar registradas para tu promesa de pago.\n\n" .
+                "Si no querés agregar nada, enviá *-*.";
+        }
+
+        // Flujo de promesa de pago: esperando las observaciones (la fecha viaja en el estado).
+        if (str_starts_with((string) $conversacion->estado_flujo, 'promesa_observaciones:')) {
+            $fecha = substr((string) $conversacion->estado_flujo, strlen('promesa_observaciones:'));
+            $observaciones = in_array($textoNormalizado, ['-', 'no', 'nada', 'sin observaciones'])
+                ? null
+                : $texto;
+
+            return $this->registrarPromesa($conversacion, $fecha, $observaciones);
         }
 
         if ($conversacion->estado_flujo === 'esperando_dni') {
@@ -175,25 +211,34 @@ class WhatsappBotController extends Controller
         $deuda = number_format((float) ($cliente->SAL_TOT ?? 0), 0, ',', '.');
 
         return [
-            'tipo' => 'botones',
+            'tipo' => 'lista',
             'mensaje' =>
                 "✅ *DNI verificado correctamente*\n\n" .
                 "Hola *{$nombre}* 👋\n\n" .
                 "Registrás una deuda actual de *$ {$deuda}* con *Tarjeta Premier*.\n\n" .
                 "Queremos ayudarte a regularizar tu situación de la forma más simple posible 😊\n\n" .
                 "Seleccioná una opción:",
-            'botones' => [
+            'titulo_boton' => 'Ver opciones',
+            'opciones' => [
+                [
+                    'id' => 'opcion_promesa',
+                    'titulo' => 'Promesa de pago',
+                    'descripcion' => 'Registrá la fecha en que vas a pagar',
+                ],
                 [
                     'id' => 'opcion_transferencia',
                     'titulo' => 'Transferir',
+                    'descripcion' => 'Datos para pagar por transferencia',
                 ],
                 [
                     'id' => 'opcion_refinanciacion',
                     'titulo' => 'Refinanciar',
+                    'descripcion' => 'Un asesor revisa tu cuenta',
                 ],
                 [
                     'id' => 'opcion_sucursal',
                     'titulo' => 'Sucursal',
+                    'descripcion' => 'Pagá en cualquiera de nuestras sucursales',
                 ],
             ],
         ];
@@ -201,6 +246,17 @@ class WhatsappBotController extends Controller
 
     private function resolverOpcion(WhatsappConversacion $conversacion, string $opcion): string
     {
+        if ($opcion === 'opcion_promesa') {
+            $conversacion->update([
+                'estado_flujo' => 'promesa_fecha',
+            ]);
+
+            return "📅 *Promesa de pago*\n\n" .
+                "Perfecto. Indicá la *fecha* en la que vas a realizar el pago.\n\n" .
+                "Escribila con el formato *dd/mm/aaaa* (ejemplo: *25/12/2026*).\n\n" .
+                "Para cancelar escribí *menu*.";
+        }
+
         if ($opcion === 'opcion_transferencia') {
             $conversacion->update([
                 'estado_flujo' => 'esperando_comprobante',
@@ -241,6 +297,51 @@ class WhatsappBotController extends Controller
         }
 
         return "No pude identificar la opción seleccionada. Escribí *menu* para volver al menú principal.";
+    }
+
+    /**
+     * Registra la promesa de pago del cliente (fecha + observaciones) en la tabla
+     * promesas de sqlpremier y marca el moroso como PROMESA DE PAGO.
+     */
+    private function registrarPromesa(WhatsappConversacion $conversacion, string $fecha, ?string $observaciones): string
+    {
+        $cliente = $this->buscarClientePorDocumento((string) $conversacion->documento);
+
+        if (!$cliente) {
+            $conversacion->update([
+                'estado_flujo' => 'esperando_dni',
+            ]);
+
+            return "No pude validar tu cuenta. Ingresá tu *DNI sin puntos ni espacios* para volver a empezar.";
+        }
+
+        try {
+            PromesaDePago::upsertDesdeMoroso($cliente, $fecha, $observaciones);
+        } catch (\InvalidArgumentException $e) {
+            $conversacion->update([
+                'estado_flujo' => 'promesa_fecha',
+            ]);
+
+            return "Hubo un problema con la fecha ingresada. Escribila de nuevo con el formato *dd/mm/aaaa* (ejemplo: *25/12/2026*).\n\nPara cancelar escribí *menu*.";
+        }
+
+        DB::connection($this->connection)->table($this->tabla)
+            ->where('DNI', $cliente->DNI)
+            ->update([
+                'ESTADO' => 'PROMESA DE PAGO',
+            ]);
+
+        $conversacion->update([
+            'estado_flujo' => 'esperando_opcion',
+        ]);
+
+        $fechaFormateada = Carbon::parse($fecha)->format('d/m/Y');
+
+        return "✅ *Promesa de pago registrada*\n\n" .
+            "📅 Fecha: *{$fechaFormateada}*\n" .
+            ($observaciones ? "📝 Observaciones: {$observaciones}\n" : "") .
+            "\nGracias por tu compromiso con el pago. Un asesor hará el seguimiento.\n\n" .
+            "Para volver al menú principal escribí *menu*.";
     }
 
     private function buscarClientePorDocumento(string $documento)
@@ -321,6 +422,63 @@ class WhatsappBotController extends Controller
         );
 
         Log::info('Respuesta envío botones WhatsApp', [
+            'telefono' => $telefono,
+            'status' => $response->status(),
+            'ok' => $response->successful(),
+            'body' => $response->json(),
+        ]);
+
+        return $response->successful();
+    }
+
+    /**
+     * Envía un mensaje interactivo de tipo lista (permite más de 3 opciones,
+     * a diferencia de los botones que tienen un máximo de 3).
+     */
+    private function enviarLista(string $telefono, array $lista): bool
+    {
+        $version = config('services.whatsapp.version');
+        $phoneNumberId = config('services.whatsapp.phone_number_id');
+        $token = config('services.whatsapp.token');
+
+        $telefono = $this->normalizarTelefonoParaMeta($telefono);
+
+        $response = Http::withToken($token)->post(
+            "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages",
+            [
+                'messaging_product' => 'whatsapp',
+                'to' => $telefono,
+                'type' => 'interactive',
+                'interactive' => [
+                    'type' => 'list',
+                    'body' => [
+                        'text' => $lista['mensaje'] ?? '',
+                    ],
+                    'action' => [
+                        'button' => $lista['titulo_boton'] ?? 'Ver opciones',
+                        'sections' => [
+                            [
+                                'title' => 'Opciones',
+                                'rows' => array_map(function ($opcion) {
+                                    $row = [
+                                        'id' => $opcion['id'],
+                                        'title' => mb_substr($opcion['titulo'], 0, 24),
+                                    ];
+
+                                    if (!empty($opcion['descripcion'])) {
+                                        $row['description'] = mb_substr($opcion['descripcion'], 0, 72);
+                                    }
+
+                                    return $row;
+                                }, $lista['opciones'] ?? []),
+                            ],
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        Log::info('Respuesta envío lista WhatsApp', [
             'telefono' => $telefono,
             'status' => $response->status(),
             'ok' => $response->successful(),
