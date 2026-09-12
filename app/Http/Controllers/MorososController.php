@@ -599,7 +599,7 @@ class MorososController extends Controller
                 'conversacion_id' => $conversacion->id,
                 'telefono' => $telefono,
                 'tipo' => 'saliente',
-                'mensaje' => 'Plantilla de prueba: ' . $template . ($ok ? ' (enviada)' : ' (error al enviar)'),
+                'mensaje' => 'Plantilla de prueba: ' . $template . ($ok ? ' (aceptada por Meta)' : ' (error al enviar)'),
             ]);
         } catch (\Throwable $e) {
             // Registrar la prueba no debe romper el envío.
@@ -847,11 +847,11 @@ public function generarMoratorias(Request $request)
             FROM whatsapp_conversaciones wc
             INNER JOIN whatsapp_mensajes wm
                 ON wm.conversacion_id = wc.id
-            WHERE wc.documento = '{$documento}'
+            WHERE wc.documento = ?
             ORDER BY wm.created_at ASC
         ";
     
-        $rows = DB::connection($this->connection)->select($sql);
+        $rows = DB::connection($this->connection)->select($sql, [$documento]);
     
         $mensajes = array_map(function ($m) {
             return [

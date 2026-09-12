@@ -33,7 +33,7 @@ class SendWhatsappReminders extends Command
         }
 
         $time = (string) ($settings['time'] ?? '09:00');
-        if (!preg_match('/^\\d{2}:\\d{2}$/', $time)) {
+        if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
             $this->error('Hora inválida en configuración (usá HH:MM, ej: 09:30).');
             return self::FAILURE;
         }

@@ -35,6 +35,26 @@ class WhatsappBotController extends Controller
 
         Log::info('Webhook WhatsApp recibido', $data);
 
+        // Estados de entrega (sent/delivered/read/failed) que envía Meta.
+        // Útil para diagnosticar por qué un mensaje aceptado no llega al teléfono.
+        $statuses = $data['entry'][0]['changes'][0]['value']['statuses']
+            ?? $data['value']['statuses']
+            ?? null;
+
+        if ($statuses) {
+            foreach ((array) $statuses as $status) {
+                Log::info('Estado de mensaje WhatsApp', [
+                    'id' => $status['id'] ?? null,
+                    'status' => $status['status'] ?? null,
+                    'recipient_id' => $status['recipient_id'] ?? null,
+                    'timestamp' => $status['timestamp'] ?? null,
+                    'errors' => $status['errors'] ?? null,
+                ]);
+            }
+
+            return response()->json(['ok' => true]);
+        }
+
         $mensaje = $data['entry'][0]['changes'][0]['value']['messages'][0]
             ?? $data['value']['messages'][0]
             ?? null;

@@ -17,7 +17,8 @@ class WhatsappSender
 
     public function sendTemplate(string $to, string $template, string $lang = 'es_AR', ?array $params = null): array
     {
-        $url = "https://graph.facebook.com/v20.0/{$this->phoneNumberId}/messages";
+        $version = (string) config('services.whatsapp.version', 'v23.0');
+        $url = "https://graph.facebook.com/{$version}/{$this->phoneNumberId}/messages";
 
         $payload = [
             'messaging_product' => 'whatsapp',

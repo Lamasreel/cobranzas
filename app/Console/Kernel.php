@@ -32,6 +32,10 @@ class Kernel extends ConsoleKernel
                     ->withoutOverlapping();
             }
         }
+
+        $schedule->command('whatsapp:send-reminders')
+            ->everyMinute()
+            ->withoutOverlapping();
     }
 
     /**
