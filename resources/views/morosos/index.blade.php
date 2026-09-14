@@ -286,6 +286,11 @@
                                     }
                                 }
                                 $phones = array_values(array_unique($phones));
+
+                                $wspRaw = strtolower(trim((string) ($m->wsp ?? '')));
+                                $tieneWspRaw = strtolower(trim((string) ($m->tiene_wsp ?? '')));
+                                $wspEnviado = in_array($wspRaw, ['1', 'si', 'sí', 'true', 'x'], true);
+                                $tieneWspFlag = in_array($tieneWspRaw, ['1', 'si', 'sí', 'true', 'x'], true);
                             @endphp
 
                             <tr
@@ -385,31 +390,28 @@
                                         {{ $m->estado ?: 'Sin estado' }}
                                     </span>
                                 </td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->wsp }}</td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->tiene_wsp }}</td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->sms }}</td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->llamada }}</td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->tiene_tel }}</td>
-                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->carta }}</td>
-
                                 <td class="py-1.5 px-2 border text-center">
-                                    @if((string) ($m->wsp ?? '') === '1' || Str::contains(((string) ($m->wsp ?? ''), '1')))
-                                        <i class="fa-solid fa-check-circle text-emerald-600" title="WhatsApp enviado"></i>
+                                    @if($wspEnviado)
+                                        <i class="fa-solid fa-check-circle text-emerald-600" title="WhatsApp enviado (WSP={{ $m->wsp }})"></i>
                                     @else
-                                        <i class="fa-regular fa-circle text-slate-300" title="No enviado"></i>
+                                        <i class="fa-regular fa-circle text-slate-300" title="WhatsApp no enviado"></i>
                                     @endif
                                 </td>
                                 <td class="py-1.5 px-2 border text-center">
-                                    @if((string) ($m->tiene_wsp ?? '') === '1' || Str::contains(((string) ($m->tiene_wsp ?? ''), '1')))
-                                        <i class="fa-solid fa-check-circle text-emerald-600" title="Tiene WhatsApp"></i>
+                                    @if($tieneWspFlag)
+                                        <i class="fa-solid fa-check-circle text-emerald-600" title="Tiene WhatsApp (TIENE_WSP={{ $m->tiene_wsp }})"></i>
                                     @else
                                         <i class="fa-regular fa-circle text-slate-300" title="No cuenta con WhatsApp"></i>
                                     @endif
                                 </td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->sms }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->llamada }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->tiene_tel }}</td>
+                                <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->carta }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="25" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
+                                <td colspan="23" class="moroso-empty-placeholder py-10 text-center text-slate-500 border">
                                     No hay morosos para los filtros seleccionados.
                                 </td>
                             </tr>
