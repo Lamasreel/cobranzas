@@ -10,7 +10,7 @@ use TCPDF;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\View\View;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\MorososExcelImport;
 use App\Models\WhatsappConversacion;
@@ -83,6 +83,136 @@ class MorososController extends Controller
 
         return str_contains($estado, 'promesa')
             || str_contains($estado, 'compromiso');
+    }
+
+    /**
+     * Actualiza el campo WSP de la tabla morosos con el valor "1" (varchar).
+     * Retorna la ruta pública /morosos/enviar-wsp-manual que ejecuta el envío masivo manual
+     * a los clientes que le corresponda según el día actual (CLI / agendador manual).
+     */
+    public function actualizarWspMasivo(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No seleccionaste ningún cliente.',
+            ], 422);
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $ids), fn($v) => $v > 0)));
+        if (empty($ids)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'IDs inválidos.',
+            ], 422);
+        }
+
+        $affected = DB::connection($this->connection)->table($this->tabla)
+            ->whereIn('ORDEN', $ids)
+            ->update(['WSP' => '1']);
+
+        return response()->json([
+            'ok' => true,
+            'message' => "WSP actualizado a '1' para {$affected} cliente(s).",
+        ]);
+    }
+
+    /**
+     * Ruta pública /morosos/enviar-wsp-manual
+     *
+     * Ejecuta el mismo filtro diario que usa el agendador automático pero de forma manual,
+     * respondiendo a: ¿qué clientes le corresponden enviar WhatsApp hoy según el día del mes?
+     *
+     * Devuelve una lista de clientes candidatos (con DNI, nombre, teléfonos y por qué corresponde)
+     * y, si se envía con ?enviar=1, efectúa el envío vía Meta WhatsApp y persiste WSP='1'
+     * junto con el timestamp de envío.
+     */
+    public function enviarWspManual(Request $request): JsonResponse
+    {
+        $enviar = (bool) $request->boolean('enviar', false);
+        $dia = (int) now()->day;
+
+        $sql = "
+            SELECT *
+            FROM {$this->tabla}
+            WHERE DIAS BETWEEN 90 AND 120
+              AND wsp_prejudicial_at IS NULL
+              AND (
+                    COALESCE(TEL_MOVIL1, '') <> ''
+                 OR COALESCE(TEL_MOVIL2, '') <> ''
+                 OR COALESCE(TEL_MOVIL3, '') <> ''
+                 OR COALESCE(TEL_ALTER1, '') <> ''
+                 OR COALESCE(TEL_ALTER2, '') <> ''
+              )
+        ";
+
+        $clientes = collect(
+            DB::connection($this->connection)->select($sql)
+        );
+
+        $resultado = $clientes->map(function ($c) use ($dia) {
+            return [
+                'orden' => (int) ($c->ORDEN ?? 0),
+                'dni' => $c->DNI ?? '',
+                'nombre' => $c->NOMBRE ?? '',
+                'dias' => (int) ($c->DIAS ?? 0),
+                'telefono_1' => $c->TEL_MOVIL1 ?? '',
+                'telefono_2' => $c->TEL_MOVIL2 ?? '',
+                'telefono_3' => $c->TEL_MOVIL3 ?? '',
+                'telefono_vecino' => $c->TEL_ALTER1 ?? '',
+                'telefono_laboral' => $c->TEL_ALTER2 ?? '',
+                'motivo' => "Días {$c->DIAS} (rango 90-120), día actual {$dia}.",
+            ];
+        });
+
+        if (!$enviar) {
+            return response()->json([
+                'ok' => true,
+                'dia' => $dia,
+                'enviado' => false,
+                'total' => $resultado->count(),
+                'clientes' => $resultado,
+            ]);
+        }
+
+        $whatsapp = app(WhatsappSender::class);
+        $enviados = 0;
+        $errores = 0;
+
+        foreach ($clientes as $c) {
+            $telefono = $this->obtenerTelefonoCliente($c);
+            if (!$telefono) {
+                $errores++;
+                continue;
+            }
+
+            $resp = $this->enviarTemplate($telefono, 'aviso_prejudicial_mora', $c);
+
+            if ($resp['status'] >= 200 && $resp['status'] < 300) {
+                DB::connection($this->connection)->update("
+                    UPDATE {$this->tabla}
+                    SET wsp_prejudicial_at = NOW(),
+                        ultimo_wsp_at = NOW(),
+                        WSP = '1',
+                        TIENE_WSP = '1'
+                    WHERE ORDEN = ?
+                      AND DNI = ?
+                ", [$c->ORDEN, $c->DNI]);
+                $enviados++;
+            } else {
+                $errores++;
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'dia' => $dia,
+            'enviado' => true,
+            'enviados' => $enviados,
+            'errores' => $errores,
+            'total' => $resultado->count(),
+        ]);
     }
 
     public function index(Request $request): View

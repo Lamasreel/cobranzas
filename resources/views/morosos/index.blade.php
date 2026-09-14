@@ -229,7 +229,7 @@
                             <th class="py-2 px-2 border text-center whitespace-nowrap">Pagado</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">Restante</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">Estado</th>
-                            <th class="py-2 px-2 border text-center whitespace-nowrap">WSP</th>
+                            <th class="py-2 px-2 border text-center whitespace-nowrap">Status WSP</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">TIENE_WSP</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">SMS</th>
                             <th class="py-2 px-2 border text-center whitespace-nowrap">LLAMADA</th>
@@ -393,10 +393,17 @@
                                 <td class="py-1.5 px-2 border text-right font-semibold">{{ $m->carta }}</td>
 
                                 <td class="py-1.5 px-2 border text-center">
-                                    @if((int) ($m->sacar ?? 0) === 1)
-                                        <i class="fa-solid fa-check text-red-500"></i>
+                                    @if((string) ($m->wsp ?? '') === '1' || Str::contains(((string) ($m->wsp ?? ''), '1')))
+                                        <i class="fa-solid fa-check-circle text-emerald-600" title="WhatsApp enviado"></i>
                                     @else
-                                        <span class="text-slate-400">-</span>
+                                        <i class="fa-regular fa-circle text-slate-300" title="No enviado"></i>
+                                    @endif
+                                </td>
+                                <td class="py-1.5 px-2 border text-center">
+                                    @if((string) ($m->tiene_wsp ?? '') === '1' || Str::contains(((string) ($m->tiene_wsp ?? ''), '1')))
+                                        <i class="fa-solid fa-check-circle text-emerald-600" title="Tiene WhatsApp"></i>
+                                    @else
+                                        <i class="fa-regular fa-circle text-slate-300" title="No cuenta con WhatsApp"></i>
                                     @endif
                                 </td>
                             </tr>

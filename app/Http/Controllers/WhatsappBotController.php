@@ -290,7 +290,7 @@ class WhatsappBotController extends Controller
                 "*CUENTA CORRIENTE EN PESOS*\n" .
                 "N° 360100100014348\n" .
                 "*CBU* 2850601830001000143480 \n\n" .
-                "Una vez realizada la transferencia, respondé este mensaje con el comprobante 📎 para que podamos registrar tu pago.\n\n" .
+                "Una vez realizada la transferencia, mandar comprobante al número 3865318802 y también a este número con el Nombre completo y DNI.\n\n" .
                 "Para volver al menú principal escribí *menu*.";
         }
 

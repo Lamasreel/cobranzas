@@ -61,6 +61,12 @@ Route::post('/morosos/whatsapp-test', [MorososController::class, 'enviarWhatsapp
     ->middleware(['auth', 'verified'])
     ->name('morosos.whatsapp_test');
 
+// Gestión manual del campo WSP (varchar) de la tabla morosos.
+Route::post('/morosos/wsp-masivo', [MorososController::class, 'actualizarWspMasivo'])
+    ->name('morosos.wsp_masivo');
+Route::get('/morosos/enviar-wsp-manual', [MorososController::class, 'enviarWspManual'])
+    ->name('morosos.enviar_wsp_manual');
+
 Route::get('/promesa_cliente', [PromesaClienteController::class, 'index'])
     ->name('promesa_cliente');
 Route::post('/promesa_cliente', [PromesaClienteController::class, 'store'])
