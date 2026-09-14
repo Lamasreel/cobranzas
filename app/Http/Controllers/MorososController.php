@@ -101,7 +101,12 @@ class MorososController extends Controller
         $query = $this->baseSelect();
 
         $estado = trim((string) $request->input('estado', ''));
-        if ($estado !== '') {
+        // Los pagados están ocultos de la vista: si se pide explícitamente PAGADO se devuelve vacío.
+        $pidePagados = $estado !== ''
+            && (str_contains(strtolower($estado), 'pagad')
+                || str_contains(strtolower($estado), 'cancelad')
+                || str_contains(strtolower($estado), 'cobrad'));
+        if ($estado !== '' && !$pidePagados) {
             $query->where('ESTADO', 'LIKE', '%' . $estado . '%');
         }
 
@@ -149,6 +154,14 @@ class MorososController extends Controller
             'pendiente' => 0,
         ];
 
+        // Los que ya pagaron no aparecen en la vista: se excluyen por estado
+        // y también por resumen de pagos (al día) aunque el estado aún no se haya actualizado.
+        $morosos = $morosos->filter(function ($m) {
+            return !$this->esPagado($m->estado ?? '')
+                && !((float) ($m->total_pagado ?? (float) ($m->pagado ?? 0)) > 0
+                    && (float) ($m->total_pagado ?? (float) ($m->pagado ?? 0)) >= (float) ($m->sal_tot ?? 0));
+        })->values();
+
         $conteo = [
             'pagados' => 0,
             'promesa' => 0,
@@ -158,10 +171,7 @@ class MorososController extends Controller
         foreach ($morosos as $m) {
             $saldo = (float) ($m->saldo_vencido ?? 0) + (float) ($m->interes_punitorio ?? 0);
 
-            if ($this->esPagado($m->estado ?? '')) {
-                $totales['pagados'] += $saldo;
-                $conteo['pagados']++;
-            } elseif ($this->esPromesa($m->estado ?? '')) {
+            if ($this->esPromesa($m->estado ?? '')) {
                 $totales['promesa'] += $saldo;
                 $conteo['promesa']++;
             } else {
@@ -171,7 +181,7 @@ class MorososController extends Controller
         }
 
         $prediccion = [
-            'pagado_futuro' => $totales['pagados'] + $totales['promesa'],
+            'pagado_futuro' => $totales['promesa'],
             'pendiente_futuro' => $totales['pendiente'],
         ];
 
